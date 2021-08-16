@@ -1,0 +1,126 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: CloudFormation template primitive which creates a load balancer v2 target group. Intended to be used as part of a nested CloudFormation template to create one or more target groups.
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - Label: 
+          default: Target Group Configuration
+        Parameters: 
+          - AppName
+          - EnvironmentId
+          - Contact
+          - ProjectId
+          - HealthCheckIntervalSeconds
+          - HealthCheckPath
+          - HealthCheckPort
+          - HealthCheckProtocol
+          - HealthCheckTimeoutSeconds
+          - HealthyThresholdCount
+          - UnhealthyThresholdCount
+          - Matcher
+          - Port
+          - Protocol
+          - VpcId
+Parameters:
+  AppName:
+    Type: String
+    Default: App1
+  EnvironmentId:
+    Type: String
+    Default: EnvironmentId
+  Contact:
+    Type: String
+    Default: SomeUser
+  ProjectId:
+    Type: String
+    Default: ProjectId
+  HealthCheckIntervalSeconds:
+    Description: Health check interval in seconds
+    Type: Number
+    Default: 30
+  HealthCheckPath:
+    Description: Health check path
+    Type: String
+    Default: /
+  HealthCheckPort:
+    Description: Health check port
+    Type: String
+    Default: traffic-port
+  HealthCheckProtocol:
+    Description: The protocol the load balancer uses when performing health checks on targets. For Application Load Balancers, the default is HTTP. For Network Load Balancers and Gateway Load Balancers, the default is TCP. The TCP protocol is not supported for health checks if the protocol of the target group is HTTP or HTTPS. The GENEVE, TLS, UDP, and TCP_UDP protocols are not supported for health checks.
+    Type: String
+    Default: HTTP
+    AllowedValues: 
+      - HTTP
+      - HTTPS
+      - GENEVETCP
+      - TCP_UDP
+      - TLS
+      - UDP
+  HealthCheckTimeoutSeconds:
+    Description: Health check interval in seconds
+    Type: Number
+    Default: 5
+  HealthyThresholdCount:
+    Description: Health check healthy threshold count
+    Type: Number
+    Default: 5
+  UnhealthyThresholdCount:
+    Description: Health check unhealthy threshold count
+    Type: Number
+    Default: 2
+  Matcher:
+    Description: Success Http return code
+    Type: String
+    Default: 200
+  Port:
+    Description: Back end port for registered instances. Can be overridden by registration.
+    Type: Number
+    Default: 80
+  Protocol:
+    Description: The protocol to use for routing traffic to the targets. For Application Load Balancers, the supported protocols are HTTP and HTTPS. For Network Load Balancers, the supported protocols are TCP, TLS, UDP, or TCP_UDP. For Gateway Load Balancers, the supported protocol is GENEVE. A TCP_UDP listener must be associated with a TCP_UDP target group. If the target is a Lambda function, this parameter does not apply.
+    Type: String
+    Default: HTTP
+    AllowedValues: 
+      - HTTP
+      - HTTPS
+      - GENEVETCP
+      - TCP_UDP
+      - TLS
+      - UDP
+  VpcId:
+    Description: VPC ID for target group
+    Type: AWS::EC2::VPC::Id
+Resources:
+  LoadBalancerTargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      HealthCheckIntervalSeconds: !Ref HealthCheckIntervalSeconds
+      HealthCheckPath: !Ref HealthCheckPath
+      HealthCheckPort: !Ref HealthCheckPort
+      HealthCheckProtocol: !Ref HealthCheckProtocol
+      HealthCheckTimeoutSeconds: !Ref HealthCheckTimeoutSeconds
+      HealthyThresholdCount: !Ref HealthyThresholdCount
+      UnhealthyThresholdCount: !Ref UnhealthyThresholdCount
+      Matcher:
+        HttpCode: !Ref Matcher
+      Name: !Sub ${ProjectId}-${EnvironmentId}-${AppName}
+      Port: !Ref Port
+      Protocol: !Ref Protocol
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectId}-${EnvironmentId}-${AppName}
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+      VpcId: !Ref VpcId
+Outputs:
+  LoadBalancerTargetGroupArn:
+    Description: Load Balancer Target Group ARN
+    Value: !Ref LoadBalancerTargetGroup 
+    Export:
+      Name: !Sub "${AWS::StackName}-${AppName}-target-group"

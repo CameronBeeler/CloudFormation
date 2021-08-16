@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: CloudFormation template primitive which creates a VPC resource.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Network Parameters
+        Parameters:
+          - CidrBlock
+          - EnableDnsSupport
+          - EnableDnsHostnames
+          - InstanceTenancy
+      - Label:
+          default: Environment and Tags
+        Parameters:
+          - Name
+          - EnvironmentId
+          - Contact
+          - ProjectId
+          - ProjectData
+
+Parameters:
+  Name:
+    Type: String
+    Default: MyVPC
+  EnvironmentId:
+    Type: String
+    Default: dev
+  Contact:
+    Type: String
+    Default: Name
+  ProjectId:
+    Type: String
+    Default: ProjectId
+  ProjectData:
+    Type: String
+    Default: env=DEV
+  CidrBlock:
+    Description: Primary CIDR Block for the VPC
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: Must be valid CIDR block
+    Type: String
+    Default: 192.168.1.0/24
+  EnableDnsSupport:
+    Description: Specifies whether DNS resolution is supported for the VPC.
+    AllowedValues:
+      - true
+      - false
+    Type: String
+    Default: true
+  EnableDnsHostnames:
+    Description: Specifies whether the instances launched in the VPC get DNS hostnames.
+    AllowedValues:
+      - true
+      - false
+    Type: String
+    Default: false
+  InstanceTenancy:
+    Description: Specifies the tenancy of instances.
+    AllowedValues:
+      - default
+      - dedicated
+    Type: String
+    Default: default
+
+Resources:
+  MyVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref CidrBlock
+      EnableDnsSupport: !Ref EnableDnsSupport
+      EnableDnsHostnames: !Ref EnableDnsHostnames
+      InstanceTenancy: !Ref InstanceTenancy
+      Tags:
+        - Key: Name
+          Value: !Ref Name
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+
+Outputs:
+  MyVpcId:
+    Description: The ID of the VPC
+    Value: !Ref MyVpc
+    Export:
+      Name: !Sub "${AWS::StackName}-vpcid"

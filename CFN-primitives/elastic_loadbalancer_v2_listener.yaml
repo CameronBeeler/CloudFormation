@@ -1,0 +1,71 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: CloudFormation template primitive which creates a load balancer v2 listener. Intended to be used as part of a nested CloudFormation template to create one or more listeners.
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - Label: 
+          default: Listener Configuration
+        Parameters: 
+          - AppName
+          - LoadBalancerArn
+          - TargetGroupArn
+          - CertificateArn
+          - Port
+          - Protocol
+          - SslPolicy
+
+Parameters:
+  AppName:
+    Type: String
+    Default: App1
+  LoadBalancerArn:
+    Description: Load balancer ARN.
+    Type: String
+  CertificateArn:
+    Description: Certificate ARN. Leave blank if the listener is not HTTPS.
+    Type: String
+    Default: ""
+  TargetGroupArn:
+    Description: Target group ARN.
+    Type: String
+  Port:
+    Description: Front end port for listener
+    Type: Number
+    Default: 443
+  Protocol:
+    Description: Front end protocol for listener
+    Type: String
+    Default: HTTPS
+    AllowedValues: 
+      - HTTP
+      - HTTPS
+  SslPolicy:
+    Description: SSL Policy for listener
+    Type: String
+    Default: ELBSecurityPolicy-2015-05
+
+Conditions: 
+  IsHttps: !Equals [!Ref Protocol, "HTTPS"]
+
+Resources:
+  LoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      Certificates:
+        - CertificateArn: !If [IsHttps, !Ref CertificateArn, !Ref "AWS::NoValue"]
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroupArn
+      LoadBalancerArn: !Ref LoadBalancerArn
+      Port: !Ref Port
+      Protocol: !Ref Protocol
+      SslPolicy: !If [IsHttps, !Ref SslPolicy, !Ref "AWS::NoValue"]
+Outputs:
+  LoadBalancerListenerArn:
+    Description: Load Balancer Listener ARN
+    Value: !Ref LoadBalancerListener 
+    Export:
+      Name: !Sub "${AWS::StackName}-${AppName}-alb-listener"

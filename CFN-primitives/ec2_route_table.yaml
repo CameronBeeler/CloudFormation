@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: CloudFormation template primitive which creates a Route Table resource.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Network Parameters
+        Parameters:
+          - VpcId
+      - Label:
+          default: Environment and Tags
+        Parameters:
+          - Name
+          - EnvironmentId
+          - Contact
+          - ProjectId
+          - ProjectData
+
+Parameters:
+  Name:
+    Type: String
+    Default: MyRouteTable
+  EnvironmentId:
+    Type: String
+    Default: dev
+  Contact:
+    Type: String
+    Default: Name
+  ProjectId:
+    Type: String
+    Default: ProjectId
+  ProjectData:
+    Type: String
+    Default: env=DEV
+  VpcId:
+    Description: VPC ID to associate with the route table
+    Type: AWS::EC2::VPC::Id
+
+Resources:
+  MyRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: !Ref Name
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+
+Outputs:
+  RouteTableId:
+    Description: The ID of the route table
+    Value: !Ref MyRouteTable
+    Export:
+      Name: !Sub "${AWS::StackName}-ROUTETABLEID"

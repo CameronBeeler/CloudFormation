@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: CloudFormation template primitive which creates a security group resource. If you want to cross-reference two security groups in the ingress and egress rules of the security group, use the AWS::EC2::SecurityGroupEgress and AWS::EC2::SecurityGroupIngress primitives to define those rules. Do not use the embedded ingress and egress rules in the AWS::EC2::SecurityGroup. Doing so creates a circular dependency, which AWS CloudFormation doesn't allow. 
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - Label: 
+          default: Network Parameters
+        Parameters: 
+          - VpcId
+      - Label: 
+          default: Environment and Tags
+        Parameters: 
+          - EnvironmentId
+          - Contact
+          - ProjectId
+          - ProjectData
+          - ShortName
+Parameters:
+  EnvironmentId:
+    Type: String
+    Default: test
+  Contact:
+    Type: String
+    Default: Name
+  ProjectId:
+    Type: String
+    Default: ProjectId
+  ProjectData:
+    Type: String
+    Default: env=TEST
+  VpcId:
+    Description: VPC in which to deploy the security group
+    Type: AWS::EC2::VPC::Id
+  GroupDescription:
+    Type: String
+    Default: Security Group Description
+  ShortName:
+    Type: String
+    Default: ShortName
+Resources:
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Ref GroupDescription
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectId}-${EnvironmentId}-${ShortName}
+        - Key: contact
+          Value: !Ref Contact
+        - Key: project_id
+          Value: !Ref ProjectId
+        - Key: project_data
+          Value: !Ref ProjectData
+      VpcId: !Ref VpcId
+Outputs:
+  SecurityGroupId:
+    Description: Security Group ID
+    Value: !Ref SecurityGroup
+    Export:
+      Name: !Sub ${AWS::StackName}-${ProjectId}-${EnvironmentId}-${ShortName}

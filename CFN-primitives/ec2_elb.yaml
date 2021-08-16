@@ -1,0 +1,123 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description:
+ CloudFormation template primitive which creates a classic elastic load balancer with one listener. Due to the fact that listeners are not separate resources like they are with ALBs, this primitive should only be called if you are only configuring a single listener.
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - Label: 
+          default: Load Balancer Configuration
+        Parameters: 
+          - Scheme
+          - LoadBalancerPort
+          - InstancePort
+          - Protocol
+          - HealthCheckTarget
+          - HealthCheckHealthyThreshold
+          - HealthCheckUnhealthyThreshold
+          - HealthCheckInterval
+          - HealthCheckTimeout
+          - EnvironmentId
+          - Contact
+          - ProjectId
+          - ProjectData
+          - Subnets
+          - CrossZoneLoadBalancing
+          - SecurityGroups
+Parameters:
+  Scheme:
+    Type: String
+    Default: internet-facing
+    AllowedValues: 
+      - internal
+      - internet-facing
+  LoadBalancerPort:
+    Type: Number
+    Default: 80
+  InstancePort:
+    Type: Number
+    Default: 80
+  Protocol:
+    Type: String
+    Default: TCP
+    AllowedValues: 
+      - TCP
+      - UDP
+  HealthCheckTarget:
+    Type: String
+    Default: /
+  HealthCheckHealthyThreshold:
+    Type: Number
+    Default: 3
+  HealthCheckUnhealthyThreshold:
+    Type: Number
+    Default: 5
+  HealthCheckInterval:
+    Type: Number
+    Default: 30
+  HealthCheckTimeout:
+    Type: Number
+    Default: 5
+  EnvironmentId:
+    Type: String
+    Default: EnvironmentId
+  Contact:
+    Type: String
+    Default: SomeUser
+  ProjectId:
+    Type: String
+    Default: ProjectId
+  ProjectData:
+    Type: String
+    Default: env=ENV
+  SecurityGroups:
+    Description: Comma delimited list of security groups
+    Type: List<AWS::EC2::SecurityGroup::Id>
+  Subnets:
+    Description: Comma delimited list of subnets
+    Type: List<AWS::EC2::Subnet::Id>
+  CrossZoneLoadBalancing:
+    Type: String
+    Default: true
+    AllowedValues:
+      - true
+      - false
+Resources:
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      Scheme: !Ref Scheme
+      Listeners:
+        - LoadBalancerPort: !Ref LoadBalancerPort
+          InstancePort: !Ref InstancePort
+          Protocol: !Ref Protocol
+      HealthCheck:
+        Target: !Ref HealthCheckTarget
+        HealthyThreshold: !Ref HealthCheckHealthyThreshold
+        UnhealthyThreshold: !Ref HealthCheckUnhealthyThreshold
+        Interval: !Ref HealthCheckInterval
+        Timeout: !Ref HealthCheckTimeout
+      Subnets: !Ref Subnets
+      CrossZone: !Ref CrossZoneLoadBalancing
+      SecurityGroups: !Ref SecurityGroups
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectId}-${EnvironmentId}-elb-${Scheme}
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: project_id
+          Value: !Ref ProjectId
+        - Key: project_data
+          Value: !Ref ProjectData
+Outputs:
+  LoadBalancerArn:
+    Description: Load Balancer ARN
+    Value: !Ref LoadBalancer 
+    Export:
+      Name: !Sub "${AWS::StackName}-elb-arn"
+  LoadBalancerDnsName:
+    Description: Load Balancer DNS Name
+    Value: !GetAtt LoadBalancer.DNSName
+    Export:
+      Name: !Sub ${AWS::StackName}-elb-${Scheme}-dns

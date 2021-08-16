@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: CloudFormation template primitive which creates a security group ingress rule.
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - Label: 
+          default: Parameters
+        Parameters: 
+          - GroupId
+          - CidrIp
+          - SourceSecurityGroupId
+          - IpProtocol
+          - FromPort
+          - ToPort
+
+Parameters:
+  GroupId:
+    Description: GroupId with which to apply this ingress rule.
+    Type: String
+  CidrIp:
+    Description: If the source is a CIDR block, enter it here. If not, leave the value blank and fill in the SourceSecurityGroupId field instead. One or the other must be populated, but not both.
+    Type: String
+    Default: ''
+  SourceSecurityGroupId:
+    Description: If the source is a security group, enter it here. If not, leave the value blank and fill in the CidrIp field instead. One or the other must be populated, but not both.
+    Type: String
+    Default: ''
+  IpProtocol:
+    Description: Ingress rule IP Protocol. Allowed values are tcp, udp, or icmp.
+    Type: String
+    Default: tcp
+    AllowedValues: 
+      - tcp
+      - udp
+      - icmp
+  FromPort:
+    Description: Ingress rule FromPort.
+    Type: Number
+    Default: 443
+    MinValue: 0
+    MaxValue: 65535
+  ToPort:
+    Description: Ingress rule ToPort.
+    Type: Number
+    Default: 443
+    MinValue: 0
+    MaxValue: 65535
+Conditions:
+  HasSourceSecurityGroupId: !Not [!Equals [!Ref SourceSecurityGroupId, '']]
+  HasCidrIp: !Not [!Equals [!Ref CidrIp, '']]
+Resources:
+  SecurityGroupIngressFromSourceGroup:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: HasSourceSecurityGroupId
+    Properties:
+      IpProtocol: !Ref IpProtocol
+      GroupId: !Ref GroupId
+      FromPort: !Ref FromPort
+      SourceSecurityGroupId: !Ref SourceSecurityGroupId
+      ToPort: !Ref ToPort
+  SecurityGroupIngressFromCidrIp:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: HasCidrIp
+    Properties:
+      IpProtocol: !Ref IpProtocol
+      GroupId: !Ref GroupId
+      FromPort: !Ref FromPort
+      CidrIp: !Ref CidrIp
+      ToPort: !Ref ToPort

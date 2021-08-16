@@ -1,0 +1,127 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: CloudFormation template primitive which creates a load balancer v2 network load balancer. Intended to be used as part of a nested CloudFormation template to create one or more layers on a stack.
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - Label: 
+          default: Load Balancer Configuration
+        Parameters: 
+          - Scheme
+          - S3AccessLogsEnabled
+          - S3AccessLogsBucket
+          - S3AccessLogsPrefix
+          - DeletionProtectionEnabled
+          - SubnetIds
+          - AllocationIds
+          - CrossZoneEnabled
+          - EnvironmentId
+          - Contact
+          - ProjectId
+Parameters:
+  Scheme:
+    Description: Defines whether the load balancer is internal or internet-facing
+    Type: String
+    Default: internet-facing
+    AllowedValues: 
+      - internal
+      - internet-facing
+  S3AccessLogsEnabled:
+    Description: Defines whether to send logs to an S3 bucket
+    Type: String
+    Default: false
+    AllowedValues: 
+      - true
+      - false
+  S3AccessLogsBucket:    
+    Description: Defines the logging bucket name, if used
+    Type: String
+    Default: ""
+  S3AccessLogsPrefix:    
+    Description: Defines the logging bucket prefix, if used
+    Type: String
+    Default: ""
+  DeletionProtectionEnabled:
+    Description: Defines whether deletion protection is enabled
+    Type: String
+    Default: false
+    AllowedValues: 
+      - true
+      - false
+  SubnetIds:
+    Description: Comma delimited list of subnet IDs
+    Type: List<AWS::EC2::Subnet::Id>
+  AllocationIds:
+    Description: Comma delimited list of EIP allocation IDs. Only used for Network Load Balancers.
+    Type: CommaDelimitedList
+    Default: ""
+  CrossZoneEnabled:
+    Description: Defines whether cross-zone load balancing is enabled
+    Type: String
+    Default: true
+    AllowedValues: 
+      - true
+      - false
+  EnvironmentId:
+    Type: String
+    Default: EnvironmentId
+  Contact:
+    Type: String
+    Default: UserName
+  ProjectId:
+    Type: String
+    Default: ProjectId
+Conditions: 
+  S3AccessLogsEnabled: !Equals [!Ref S3AccessLogsEnabled, true]
+Resources:
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: !Ref Scheme
+      Type: network
+      LoadBalancerAttributes:
+        !If
+          - S3AccessLogsEnabled
+          - 
+            - Key: access_logs.s3.enabled
+              Value: !Ref S3AccessLogsEnabled
+            - Key: access_logs.s3.bucket
+              Value: !Ref S3AccessLogsBucket
+            - Key: access_logs.s3.prefix
+              Value: !Ref S3AccessLogsPrefix
+            - Key: deletion_protection.enabled
+              Value: !Ref DeletionProtectionEnabled
+            - Key: load_balancing.cross_zone.enabled
+              Value: !Ref CrossZoneEnabled
+          - 
+            - Key: access_logs.s3.enabled
+              Value: !Ref S3AccessLogsEnabled
+            - Key: deletion_protection.enabled
+              Value: !Ref DeletionProtectionEnabled
+            - Key: load_balancing.cross_zone.enabled
+              Value: !Ref CrossZoneEnabled
+      SubnetMappings:
+        - AllocationId: !Select [0, !Ref AllocationIds]
+          SubnetId: !Select [0, !Ref SubnetIds]
+        - AllocationId: !Select [1, !Ref AllocationIds]
+          SubnetId: !Select [1, !Ref SubnetIds]
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectId}-${EnvironmentId}-nlb-${Scheme}
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+Outputs:
+  LoadBalancerArn:
+    Description: Load Balancer ARN
+    Value: !Ref LoadBalancer 
+    Export:
+      Name: !Sub "${AWS::StackName}-nlb-arn"
+  LoadBalancerDnsName:
+    Description: Load Balancer DNS Name
+    Value: !GetAtt LoadBalancer.DNSName
+    Export:
+      Name: !Sub ${AWS::StackName}-nlb-${Scheme}-dns

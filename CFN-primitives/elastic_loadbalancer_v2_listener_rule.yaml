@@ -1,0 +1,56 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: CloudFormation template primitive which creates a load balancer v2 listener rule. Intended to be used as part of a nested CloudFormation template to create one or more target groups.
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - Label: 
+          default: Listener Rule Configuration
+        Parameters: 
+          - AppName
+          - ListenerArn
+          - TargetGroupArn
+          - Priority
+          - PathPattern
+
+Parameters:
+  AppName:
+    Type: String
+    Default: App1
+  ListenerArn:
+    Description: Listener ARN.
+    Type: String
+  TargetGroupArn:
+    Description: Target group ARN.
+    Type: String
+  Priority:
+    Description: Rule priority
+    Type: Number
+    Default: 1
+  PathPattern:
+    Description: Path Pattern for listener rule
+    Type: String
+    Default: /
+
+Resources:
+  LoadBalancerListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - !Ref PathPattern
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroupArn
+      ListenerArn: !Ref ListenerArn
+      Priority: !Ref Priority
+
+Outputs:
+  LoadBalancerListenerRuleArn:
+    Description: Load Balancer Listener Rule ARN
+    Value: !Ref LoadBalancerListenerRule 
+    Export:
+      Name: !Sub "${AWS::StackName}-${AppName}-alb-listener-rule"

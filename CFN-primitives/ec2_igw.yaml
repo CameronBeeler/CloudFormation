@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: CloudFormation template primitive which creates an Internet Gateway resource.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Environment and Tags
+        Parameters:
+          - Name
+          - EnvironmentId
+          - Contact
+          - ProjectId
+          - ProjectData
+
+Parameters:
+  Name:
+    Type: String
+    Default: MyIGW
+  EnvironmentId:
+    Type: String
+    Default: dev
+  Contact:
+    Type: String
+    Default: Name
+  ProjectId:
+    Type: String
+    Default: ProjectId
+  ProjectData:
+    Type: String
+    Default: env=DEV
+
+Resources:
+  MyIgw:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref Name
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+
+Outputs:
+  IgwId:
+    Description: The ID of the IGW
+    Value: !Ref MyIgw
+    Export:
+      Name: !Sub "${AWS::StackName}-IGWID"

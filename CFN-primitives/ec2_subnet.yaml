@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: CloudFormation template primitive which creates a VPC subnet resource.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Network Parameters
+        Parameters:
+          - VpcId
+          - AvailabilityZone
+          - CidrBlock
+          - MapPublicIpOnLaunch
+      - Label:
+          default: Environment and Tags
+        Parameters:
+          - Name
+          - EnvironmentId
+          - Contact
+          - ProjectId
+          - ProjectData
+
+Parameters:
+  Name:
+    Type: String
+    Default: subnet1
+  EnvironmentId:
+    Type: String
+    Default: dev
+  Contact:
+    Type: String
+    Default: Name
+  ProjectId:
+    Type: String
+    Default: ProjectId
+  ProjectData:
+    Type: String
+    Default: env=DEV
+  AvailabilityZone:
+    Description: Availability zone of the subnet
+    Type: AWS::EC2::AvailabilityZone::Name
+  CidrBlock:
+    Description: CIDR block for the subnet
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: Must be valid CIDR block
+    Type: String
+    Default: 192.168.1.0/24
+  MapPublicIpOnLaunch:
+    Description: Automatically assign public IPs to instances
+    AllowedValues:
+      - true
+      - false
+    Type: String
+    Default: false
+  VpcId:
+    Description: VPC ID for the subnet to be attached to
+    Type: AWS::EC2::VPC::Id
+
+Resources:
+  MySubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone
+      CidrBlock: !Ref CidrBlock
+      MapPublicIpOnLaunch: !Ref MapPublicIpOnLaunch
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: !Ref Name
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+
+Outputs:
+  MySubnetId:
+    Description: The ID of the subnet
+    Value: !Ref MySubnet
+    Export:
+      Name: !Sub "${AWS::StackName}-SubnetID"

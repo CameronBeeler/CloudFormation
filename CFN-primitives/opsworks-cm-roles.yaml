@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: IAM Resources for AWS OpsWorks CM.
+
+Resources:
+  InstanceScanPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties: 
+      Description: Policy allowing an Opsworks CM server to scan AWS resources
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - ec2:DescribeInstances
+              - ssm:*
+              - ec2:DescribeRegions
+              - sts:GetCallerIdentity
+              - ec2:DescribeInstanceStatus
+              - iam:ListAccountAliases
+            Resource: "*"
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+        - arn:aws:iam::aws:policy/AWSOpsWorksCMInstanceProfileRole
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - !Ref InstanceScanPolicy
+      MaxSessionDuration: 14400
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+        Version: '2012-10-17'
+      Path: /
+      RoleName: !Join [ "", [ "aws-opsworks-cm-", !Ref "AWS::StackName" ] ]
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - Ref: InstanceRole
+  ServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSOpsWorksCMServiceRole
+      MaxSessionDuration: 14400
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - opsworks-cm.amazonaws.com
+        Version: '2012-10-17'
+      Path: /
+Outputs:
+  InstanceProfileArn:
+    Description: InstanceProfileArn
+    Value: !GetAtt [InstanceProfile, Arn]
+  ServiceRoleArn:
+    Description: ServiceRoleArn
+    Value: !GetAtt [ServiceRole, Arn]

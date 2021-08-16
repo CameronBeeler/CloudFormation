@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: IAM resources for use on EC2 instances which grants the necessary rights to integrate with SSM.
+
+Resources:
+  InstanceS3Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties: 
+      Description: Policy granting the minimum S3 rights necessary for SSM functionality. This replaces the use of arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+            Resource: [
+                !Sub "arn:aws:s3:::aws-ssm-${AWS::Region}/*",
+                !Sub "arn:aws:s3:::aws-windows-downloads-${AWS::Region}/*",
+                !Sub "arn:aws:s3:::amazon-ssm-${AWS::Region}/*",
+                !Sub "arn:aws:s3:::amazon-ssm-packages-${AWS::Region}/*",
+                !Sub "arn:aws:s3:::${AWS::Region}-birdwatcher-prod/*",
+                !Sub "arn:aws:s3:::patch-baseline-snapshot-${AWS::Region}/*"
+            ]
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+        - !Ref InstanceS3Policy
+      MaxSessionDuration: 14400
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+        Version: '2012-10-17'
+      Path: /
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - Ref: InstanceRole
+Outputs:
+  InstanceProfileArn:
+    Description: InstanceProfileArn
+    Value: !GetAtt [InstanceProfile, Arn]

@@ -1,0 +1,169 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CloudFormation template primitive which creates an AWS Simple AD Directory Service.
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - Label: 
+          default: Directory Service Configuration
+        Parameters:
+          - VpcId
+          - Name
+          - ShortName
+          - SecretName
+          - SimpleAdAdminPasswordLength
+          - Size
+          - SubnetId1
+          - SubnetId2
+      - Label: 
+          default: Tags
+        Parameters:
+          - EnvironmentId
+          - Contact
+          - ProjectId
+          - ProjectData
+Parameters:
+  VpcId:
+    Description: Deploy to which VPC
+    Type: AWS::EC2::VPC::Id
+  Name:
+    Type: String
+    Default: DNSName
+  ShortName:
+    Type: String
+    Default: ShortName
+  SecretName:
+    Type: String
+    Default: SecretName
+  SimpleAdAdminPasswordLength:
+    Type: Number
+    Default: 8
+  Size:
+    Type: String
+    Default: Small
+    AllowedValues:
+      - Small
+      - Large
+  SubnetId1:
+    Description: Subnet 1
+    Type: AWS::EC2::Subnet::Id
+  SubnetId2:
+    Description: Subnet 2
+    Type: AWS::EC2::Subnet::Id
+  NetbiosNodeType:
+    Type: Number
+    Default: 2
+    AllowedValues:
+      - 1
+      - 2
+      - 4
+      - 8
+  EnvironmentId:
+    Type: String
+    Default: dev
+  Contact:
+    Type: String
+    Default: ContactName
+  ProjectId:
+    Type: String
+    Default: ProjectId
+  ProjectData:
+    Type: String
+    Default: env=DEV
+Resources:
+  SimpleAdSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: "This is a Secrets Manager secret for a Simple AD resource, containing the admin password necessary for the initial setup of Simple AD"
+      Name: !Ref SecretName
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "administrator"}'
+        GenerateStringKey: "password"
+        PasswordLength: !Ref SimpleAdAdminPasswordLength
+        ExcludeCharacters: '"@/\'
+      Tags:
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+  MyDirectory:
+    Type: AWS::DirectoryService::SimpleAD
+    Properties:
+      Name: !Ref Name
+      ShortName: !Ref ShortName
+      Password: !Join ['', ['{{resolve:secretsmanager:', !Ref SimpleAdSecret, ':SecretString:password}}' ]]
+      Size: !Ref Size
+      VpcSettings:
+        SubnetIds:
+          - !Ref SubnetId1
+          - !Ref SubnetId2
+        VpcId: !Ref VpcId
+  SimpleAdDhcpOptions:
+    Type: AWS::EC2::DHCPOptions
+    Properties: 
+      DomainName: !Ref Name
+      DomainNameServers: 
+        - !Select [ 0, !GetAtt MyDirectory.DnsIpAddresses ]
+        - !Select [ 1, !GetAtt MyDirectory.DnsIpAddresses ]
+      NetbiosNameServers: 
+        - !Select [ 0, !GetAtt MyDirectory.DnsIpAddresses ]
+        - !Select [ 1, !GetAtt MyDirectory.DnsIpAddresses ]
+      NetbiosNodeType: !Ref NetbiosNodeType
+      NtpServers: 
+        - !Select [ 0, !GetAtt MyDirectory.DnsIpAddresses ]
+        - !Select [ 1, !GetAtt MyDirectory.DnsIpAddresses ]
+      Tags:
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+  SimpleAdDhcpOptionsAssociation:
+    Type: AWS::EC2::VPCDHCPOptionsAssociation
+    Properties: 
+      DhcpOptionsId: !Ref SimpleAdDhcpOptions
+      VpcId: !Ref VpcId
+  SimpleAdInstanceRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+        Version: '2012-10-17'
+      Path: /
+  SimpleAdInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+      - !Ref SimpleAdInstanceRole
+Outputs:
+  MyDirectoryId:
+    Description: The ID of the directory
+    Value: !Ref MyDirectory
+    Export:
+      Name: !Sub ${AWS::StackName}-${ShortName}-SIMPLEADID
+  SimpleAdInstanceRoleName:
+    Value: !Ref SimpleAdInstanceRole
+  SimpleAdInstanceProfileName:
+    Value: !Ref SimpleAdInstanceProfile
+  SimpleAdInstanceRoleArn:
+    Description: InstanceRoleArn
+    Value: !GetAtt [SimpleAdInstanceRole, Arn]
+  SimpleAdInstanceProfileArn:
+    Description: InstanceProfileArn
+    Value: !GetAtt [SimpleAdInstanceProfile, Arn]
+

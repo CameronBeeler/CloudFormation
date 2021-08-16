@@ -1,0 +1,152 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: CloudFormation template primitive which creates a load balancer v2 application load balancer. Intended to be used as part of a nested CloudFormation template to create one or more layers on a stack.
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - Label: 
+          default: Load Balancer Configuration
+        Parameters: 
+          - Scheme
+          - S3AccessLogsEnabled
+          - S3AccessLogsBucket
+          - S3AccessLogsPrefix
+          - DeletionProtectionEnabled
+          - SubnetIds
+          - SecurityGroups
+          - IdleTimeout
+          - DropInvalidHeaderFieldsEnabled
+          - Http2Enabled
+          - EnvironmentId
+          - AdminContact
+          - ProjectId
+          - ProjectData
+Parameters:
+  Scheme:
+    Description: Defines whether the load balancer is internal or internet-facing
+    Type: String
+    Default: internet-facing
+    AllowedValues: 
+      - internal
+      - internet-facing
+  S3AccessLogsEnabled:
+    Description: Defines whether to send logs to an S3 bucket
+    Type: String
+    Default: false
+    AllowedValues: 
+      - true
+      - false
+  S3AccessLogsBucket:    
+    Description: Defines the logging bucket name, if used
+    Type: String
+    Default: ""
+  S3AccessLogsPrefix:    
+    Description: Defines the logging bucket prefix, if used
+    Type: String
+    Default: ""
+  DeletionProtectionEnabled:
+    Description: Defines whether deletion protection is enabled
+    Type: String
+    Default: false
+    AllowedValues: 
+      - true
+      - false
+  SecurityGroups:
+    Description: Comma delimited list of security groups. Only used for Application Load Balancers.
+    Type: List<AWS::EC2::SecurityGroup::Id>
+  SubnetIds:
+    Description: Comma delimited list of subnet IDs
+    Type: List<AWS::EC2::Subnet::Id>
+  IdleTimeout:    
+    Description: Idle timeout in seconds
+    Type: Number
+    Default: 60
+    MinValue: 1
+    MaxValue: 4000
+  DropInvalidHeaderFieldsEnabled:
+    Description: Defines whether unsupported HTTP header fields are dropped
+    Type: String
+    Default: false
+    AllowedValues: 
+      - true
+      - false
+  Http2Enabled:
+    Description: Defines whether HTTP2 is enabled
+    Type: String
+    Default: true
+    AllowedValues: 
+      - true
+      - false
+  EnvironmentId:
+    Type: String
+    Default: EnvironmentId
+  AdminContact:
+    Type: String
+    Default: UserName
+  ProjectId:
+    Type: String
+    Default: ProjectId
+  ProjectData:
+    Type: String
+    Default: env=ENV
+Conditions: 
+  S3AccessLogsEnabled: !Equals [!Ref S3AccessLogsEnabled, true]
+Resources:
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: !Ref Scheme
+      Type: application
+      LoadBalancerAttributes:
+        !If
+          - S3AccessLogsEnabled
+          - 
+            - Key: access_logs.s3.enabled
+              Value: !Ref S3AccessLogsEnabled
+            - Key: deletion_protection.enabled
+              Value: !Ref DeletionProtectionEnabled
+            - Key: access_logs.s3.bucket
+              Value: !Ref S3AccessLogsBucket
+            - Key: access_logs.s3.prefix
+              Value: !Ref S3AccessLogsPrefix
+            - Key: idle_timeout.timeout_seconds
+              Value: !Ref IdleTimeout
+            - Key: routing.http.drop_invalid_header_fields.enabled
+              Value: !Ref DropInvalidHeaderFieldsEnabled
+            - Key: routing.http2.enabled
+              Value: !Ref Http2Enabled
+          - 
+            - Key: access_logs.s3.enabled
+              Value: !Ref S3AccessLogsEnabled
+            - Key: deletion_protection.enabled
+              Value: !Ref DeletionProtectionEnabled
+            - Key: idle_timeout.timeout_seconds
+              Value: !Ref IdleTimeout
+            - Key: routing.http.drop_invalid_header_fields.enabled
+              Value: !Ref DropInvalidHeaderFieldsEnabled
+            - Key: routing.http2.enabled
+              Value: !Ref Http2Enabled
+      Subnets: !Ref SubnetIds
+      SecurityGroups: !Ref SecurityGroups
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectId}-${EnvironmentId}-alb-${Scheme}
+        - Key: admin_contact
+          Value: !Ref AdminContact
+        - Key: service_id
+          Value: !Ref ProjectId
+        - Key: service_data
+          Value: !Ref ProjectData
+Outputs:
+  LoadBalancerArn:
+    Description: Load Balancer ARN
+    Value: !Ref LoadBalancer 
+    Export:
+      Name: !Sub "${AWS::StackName}-alb-arn"
+  LoadBalancerDnsName:
+    Description: Load Balancer DNS Name
+    Value: !GetAtt LoadBalancer.DNSName
+    Export:
+      Name: !Sub ${AWS::StackName}-alb-${Scheme}-dns

@@ -1,0 +1,243 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CloudFormation template primitive which creates an OpsWorks CM Server environment.
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Nested Template Information
+        Parameters:
+          - NestedTemplateBaseUrl
+          - RolesTemplate
+          - NodesRolesTemplate
+          - SecurityGroupTemplate
+          - SecurityGroupIngressTemplate
+      - Label:
+          default: Network Information
+        Parameters:
+          - SecurityGroupVpcId
+          - SecurityGroupCidrIp
+          - KeyPairName
+          - KeyPairPrivateKey
+          - OpsWorksCmSubnet
+          - AssociatePublicIpAddress
+      - Label:
+          default: OpsWorks CM Server settings
+        Parameters:
+          - InstanceType
+          - Engine
+          - EngineModel
+          - EngineVersion
+          - PivotalKey
+          - AdminPassword
+          - BackupId
+          - PreferredBackupWindow
+          - BackupRetentionCount
+          - DisableAutomatedBackup
+          - PreferredMaintenanceWindow
+      - Label:
+          default: Environment and Tags
+        Parameters:
+          - EnvironmentId
+          - Contact
+          - ProjectId
+          - ProjectData
+Parameters:
+  NestedTemplateBaseUrl:
+    Type: String
+    Default: https://s3-us-west-2.amazonaws.com/com.witsolutions/cloudformation-primitives/
+  RolesTemplate:
+    Type: String
+    Default: opsworks-cm-roles.yaml
+  NodesRolesTemplate:
+    Type: String
+    Default: opsworks-cm-nodes-roles.yaml
+  SecurityGroupTemplate:
+    Type: String
+    Default: security_group.yaml
+  SecurityGroupIngressTemplate:
+    Type: String
+    Default: security_group_ingress.yaml
+  SecurityGroupVpcId:
+    Type: AWS::EC2::VPC::Id
+  SecurityGroupCidrIp:
+    Type: String
+    Default: 192.168.0.0/21
+    Description: CIDR block for ingress rule to OpsWorks CM Server. Usually the CIDR of the VPC into which you're deploying.
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of the SSH keypair to be set on the OpsWorks CM server.
+  KeyPairPrivateKey:
+    Type: String
+    Default: KeyPairPrivateKey
+    Description: SSH keypair private key, for storage in AWS Secrets.
+    NoEcho: True
+  PivotalKey:
+    Type: String
+  AdminPassword:
+    Type: String
+    NoEcho: True
+  BackupId:
+    Type: String
+    Default: ""
+  PreferredBackupWindow:
+    Type: String
+    Default: "Sat:11:00"
+    Description: Preferred backup window time in UTC, in the form HH:MM (daily) or DDD:HH:MM for weekly
+  PreferredMaintenanceWindow:
+    Type: String
+    Default: "Sat:08:00"
+    Description: Preferred maintenance window time in UTC, in the form HH:MM (daily) or DDD:HH:MM for weekly
+  OpsWorksCmSubnet:
+    Type: AWS::EC2::Subnet::Id
+  AssociatePublicIpAddress:
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: false
+    Description: Whether or not associate a public IP with the OpsWorks CM server, if it is in a public subnet
+  BackupRetentionCount:
+    Type: Number
+    Default: 1
+  DisableAutomatedBackup:
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: false
+  Engine:
+    Type: String
+    AllowedValues:
+      - ChefAutomate
+      - Puppet
+    Default: ChefAutomate
+  EngineModel:
+    Type: String
+    AllowedValues:
+      - Single
+      - Monolithic
+    Default: Single
+  EngineVersion:
+    Type: String
+    AllowedValues:
+      - 2
+      - 2017
+    Default: 2
+  InstanceType:
+    Type: String
+    AllowedValues:
+      - m5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - m4.large
+      - r4.xlarge
+      - r4.2xlarge
+    Default: m5.large
+  EnvironmentId:
+    Type: String
+    Default: dev
+  Contact:
+    Type: String
+    Default: ContactName
+  ProjectId:
+    Type: String
+    Default: ProjectId
+  ProjectData:
+    Type: String
+    Default: env=DEV
+Conditions: 
+  UseBackupId: !Not [!Equals [!Ref BackupId, ""]]
+Resources:
+  OpsWorksCmRoles:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${RolesTemplate}
+  OpsWorksCmNodesRoles:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${NodesRolesTemplate}
+  OpsWorksCmSecurityGroup:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        VpcId: !Ref SecurityGroupVpcId
+        GroupDescription: OpsWorks CM Security Group controlling ingress to an OpsWorks CM server.
+        ShortName: !Sub ${ProjectId}-${EnvironmentId}-opsworks-cm
+        EnvironmentId: !Ref EnvironmentId
+        Contact: !Ref Contact
+        ProjectId: !Ref ProjectId
+        ProjectData: !Ref ProjectData
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${SecurityGroupTemplate}
+      Tags:
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+  OpsWorksCmSecurityGroupIngress22:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        IpProtocol: tcp
+        GroupId: !GetAtt OpsWorksCmSecurityGroup.Outputs.SecurityGroupId
+        FromPort: "22"
+        CidrIp: !Ref SecurityGroupCidrIp
+        ToPort: "22"
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${SecurityGroupIngressTemplate}
+  OpsWorksCmSecurityGroupIngress443:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        IpProtocol: tcp
+        GroupId: !GetAtt OpsWorksCmSecurityGroup.Outputs.SecurityGroupId
+        FromPort: "443"
+        CidrIp: !Ref SecurityGroupCidrIp
+        ToPort: "443"
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${SecurityGroupIngressTemplate}
+  OpsWorksCmSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: "This is a Secrets Manager secret for an OpsWorks for Chef Automate resource, containing the pivotal key and admin password necessary for the initial setup of OpsWorks for Chef Automate, as well as the SSH keypair which will be set on the instance."
+      Name: !Sub ${ProjectId}-${EnvironmentId}-opsworks-cm
+      SecretString: !Sub '{"CHEF_AUTOMATE_PIVOTAL_KEY": "${PivotalKey}","keypair": "${KeyPairName}","privatekey": "${KeyPairPrivateKey}", "CHEF_AUTOMATE_ADMIN_PASSWORD": "${AdminPassword}"}'
+      Tags:
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+  OpsWorksCm:
+    Type: AWS::OpsWorksCM::Server
+    Properties: 
+      AssociatePublicIpAddress: !Ref AssociatePublicIpAddress
+      BackupId: !If [UseBackupId, !Ref BackupId, !Ref "AWS::NoValue"]
+      BackupRetentionCount: !Ref BackupRetentionCount
+      DisableAutomatedBackup: !Ref DisableAutomatedBackup
+      Engine: !Ref Engine
+      EngineModel: !Ref EngineModel
+      EngineVersion: !Ref EngineVersion
+      EngineAttributes: 
+        - Name: "CHEF_AUTOMATE_PIVOTAL_KEY"
+          Value: !Ref PivotalKey
+        - Name: "CHEF_AUTOMATE_ADMIN_PASSWORD"
+          Value: !Ref AdminPassword
+      InstanceProfileArn: !GetAtt OpsWorksCmRoles.Outputs.InstanceProfileArn
+      InstanceType: !Ref InstanceType
+      KeyPair: !Ref KeyPairName
+      PreferredBackupWindow: !Ref PreferredBackupWindow
+      PreferredMaintenanceWindow: !Ref PreferredMaintenanceWindow
+      SecurityGroupIds: 
+        - !GetAtt OpsWorksCmSecurityGroup.Outputs.SecurityGroupId
+      ServiceRoleArn: !GetAtt OpsWorksCmRoles.Outputs.ServiceRoleArn
+      SubnetIds: 
+        - !Ref OpsWorksCmSubnet
+Outputs:
+  endpoint:
+    Description: OpsWorksCM Endpoint
+    Value: !GetAtt [OpsWorksCm, Endpoint]

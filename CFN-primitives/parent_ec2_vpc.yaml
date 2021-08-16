@@ -1,0 +1,597 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Parent template to create a VPC, IGW, NAT Gateways, Routes, Public and Private Subnets, using nested template primitives for most of those resources.
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Nested Template S3 Parameters
+        Parameters:
+          - NestedTemplateBaseUrl
+          - VpcTemplate
+          - IgwTemplate
+          - RouteTableTemplate
+          - SubnetTemplate
+      - Label:
+          default: VPC Network Parameters
+        Parameters:
+          - VpcName
+          - VpcCidrBlock
+          - EnableDnsSupport
+          - EnableDnsHostnames
+          - InstanceTenancy
+          - IgwName
+          - NumberOfAzs
+          - PublicANatName
+          - PublicBNatName
+          - PublicCNatName
+          - RouteTableName
+      - Label:
+          default: Subnet Network Parameters
+        Parameters:
+          - MapPublicIpOnLaunch
+          - PublicAName
+          - PublicBName
+          - PublicCName
+          - PrivateAName
+          - PrivateBName
+          - PrivateCName
+      - Label:
+          default: Environment and Tags
+        Parameters:
+          - EnvironmentId
+          - Contact
+          - ProjectId
+          - ProjectData
+Parameters:
+  NestedTemplateBaseUrl:
+    Type: String
+    Default: https://s3-us-west-2.amazonaws.com/com.witsolutions/cloudformation-primitives/
+  VpcTemplate:
+    Type: String
+    Default: ec2_vpc.yaml
+  IgwTemplate:
+    Type: String
+    Default: ec2_igw.yaml
+  RouteTableTemplate:
+    Type: String
+    Default: ec2_route_table.yaml
+  SubnetTemplate:
+    Type: String
+    Default: ec2_subnet.yaml
+  VpcName:
+    Type: String
+    Default: vpc
+  IgwName:
+    Type: String
+    Default: igw
+  NumberOfAzs:
+    Type: Number
+    Default: 3
+    MinValue : 1
+    MaxValue : 3
+  PublicANatName:
+    Description: Name for PublicA NAT Gateway
+    Type: String
+    Default: public-a
+  PublicBNatName:
+    Description: Name for PublicB NAT Gateway
+    Type: String
+    Default: public-b
+  PublicCNatName:
+    Description: Name for PublicC NAT Gateway
+    Type: String
+    Default: public-c
+  RouteTableName:
+    Type: String
+    Default: rt
+  EnvironmentId:
+    Type: String
+    Default: dev
+  Contact:
+    Type: String
+    Default: Name
+  ProjectId:
+    Type: String
+    Default: ProjectId
+  ProjectData:
+    Type: String
+    Default: env=DEV
+  VpcCidrBlock:
+    Description: Primary CIDR Block for the VPC
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: Must be valid CIDR block
+    Type: String
+    Default: 192.168.0.0/21
+  EnableDnsSupport:
+    Description: Specifies whether DNS resolution is supported for the VPC.
+    AllowedValues:
+      - true
+      - false
+    Type: String
+    Default: true
+  EnableDnsHostnames:
+    Description: Specifies whether the instances launched in the VPC get DNS hostnames.
+    AllowedValues:
+      - true
+      - false
+    Type: String
+    Default: true
+  InstanceTenancy:
+    Description: Specifies the tenancy of instances.
+    AllowedValues:
+      - default
+      - dedicated
+    Type: String
+    Default: default
+  PublicAName:
+    Description: Name for PublicASubnet
+    Type: String
+    Default: public-a
+  PublicBName:
+    Description: Name for PublicBSubnet
+    Type: String
+    Default: public-b
+  PublicCName:
+    Description: Name for PublicCSubnet
+    Type: String
+    Default: public-c
+  PrivateAName:
+    Description: Name for PrivateASubnet
+    Type: String
+    Default: private-a
+  PrivateBName:
+    Description: Name for PrivateBSubnet
+    Type: String
+    Default: private-b
+  PrivateCName:
+    Description: Name for PrivateCSubnet
+    Type: String
+    Default: private-c
+  MapPublicIpOnLaunch:
+    Description: Automatically map a public IP to instances in the public subnets
+    AllowedValues:
+      - true
+      - false
+    Type: String
+    Default: false
+Conditions:
+    Create2Azs: !Or [!Equals [!Ref NumberOfAzs, 2], !Equals [!Ref NumberOfAzs, 3]]
+    Create3Azs: !Equals [!Ref NumberOfAzs, 3]
+Resources:
+  MyVpc:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        CidrBlock: !Ref VpcCidrBlock
+        EnableDnsSupport: !Ref EnableDnsSupport
+        EnableDnsHostnames: !Ref EnableDnsHostnames
+        InstanceTenancy: !Ref InstanceTenancy
+        Name: !Sub ${VpcName}-${EnvironmentId}
+        EnvironmentId: !Ref EnvironmentId
+        Contact: !Ref Contact
+        ProjectId: !Ref ProjectId
+        ProjectData: !Ref ProjectData
+      Tags:
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${VpcTemplate}
+      TimeoutInMinutes: 15
+  PrimaryInternetGateway:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub ${VpcName}-${EnvironmentId}-${IgwName}
+        EnvironmentId: !Ref EnvironmentId
+        Contact: !Ref Contact
+        ProjectId: !Ref ProjectId
+        ProjectData: !Ref ProjectData
+      Tags:
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${IgwTemplate}
+      TimeoutInMinutes: 15
+  PrimaryIgwAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !GetAtt MyVpc.Outputs.MyVpcId
+      InternetGatewayId: !GetAtt PrimaryInternetGateway.Outputs.IgwId
+  PublicRouteTable:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        VpcId: !GetAtt MyVpc.Outputs.MyVpcId
+        Name: !Sub ${VpcName}-${EnvironmentId}-${RouteTableName}-public
+        EnvironmentId: !Ref EnvironmentId
+        Contact: !Ref Contact
+        ProjectId: !Ref ProjectId
+        ProjectData: !Ref ProjectData
+      Tags:
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${RouteTableTemplate}
+  PublicInternetRoute:
+    Type: AWS::EC2::Route
+    DependsOn: PrimaryIgwAttachment
+    Properties:
+      RouteTableId: !GetAtt PublicRouteTable.Outputs.RouteTableId
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !GetAtt PrimaryInternetGateway.Outputs.IgwId
+  PrivateARouteTable:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        VpcId: !GetAtt MyVpc.Outputs.MyVpcId
+        Name: !Sub ${VpcName}-${EnvironmentId}-${RouteTableName}-private-a
+        EnvironmentId: !Ref EnvironmentId
+        Contact: !Ref Contact
+        ProjectId: !Ref ProjectId
+        ProjectData: !Ref ProjectData
+      Tags:
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${RouteTableTemplate}
+  PrivateBRouteTable:
+    Type: AWS::CloudFormation::Stack
+    Condition: Create2Azs
+    Properties:
+      Parameters:
+        VpcId: !GetAtt MyVpc.Outputs.MyVpcId
+        Name: !Sub ${VpcName}-${EnvironmentId}-${RouteTableName}-private-b
+        EnvironmentId: !Ref EnvironmentId
+        Contact: !Ref Contact
+        ProjectId: !Ref ProjectId
+        ProjectData: !Ref ProjectData
+      Tags:
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${RouteTableTemplate}
+  PrivateCRouteTable:
+    Type: AWS::CloudFormation::Stack
+    Condition: Create3Azs
+    Properties:
+      Parameters:
+        VpcId: !GetAtt MyVpc.Outputs.MyVpcId
+        Name: !Sub ${VpcName}-${EnvironmentId}-${RouteTableName}-private-c
+        EnvironmentId: !Ref EnvironmentId
+        Contact: !Ref Contact
+        ProjectId: !Ref ProjectId
+        ProjectData: !Ref ProjectData
+      Tags:
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${RouteTableTemplate}
+  PublicASubnet:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        AvailabilityZone: !Select
+          - 0
+          - Fn::GetAZs: !Ref 'AWS::Region'
+        CidrBlock: !Select [ 0, !Cidr [ !Ref VpcCidrBlock, 6, 8 ]]
+        MapPublicIpOnLaunch: !Ref MapPublicIpOnLaunch
+        VpcId: !GetAtt MyVpc.Outputs.MyVpcId
+        Name: !Sub ${VpcName}-${EnvironmentId}-${PublicAName}
+        EnvironmentId: !Ref EnvironmentId
+        Contact: !Ref Contact
+        ProjectId: !Ref ProjectId
+        ProjectData: !Ref ProjectData
+      Tags:
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${SubnetTemplate}
+      TimeoutInMinutes: 15
+  PublicASubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !GetAtt PublicASubnet.Outputs.MySubnetId
+      RouteTableId: !GetAtt PublicRouteTable.Outputs.RouteTableId
+  PublicBSubnet:
+    Type: AWS::CloudFormation::Stack
+    Condition: Create2Azs
+    Properties:
+      Parameters:
+        AvailabilityZone: !Select 
+          - 1
+          - Fn::GetAZs: !Ref 'AWS::Region'
+        CidrBlock: !Select [ 1, !Cidr [ !Ref VpcCidrBlock, 6, 8 ]]
+        MapPublicIpOnLaunch: !Ref MapPublicIpOnLaunch
+        VpcId: !GetAtt MyVpc.Outputs.MyVpcId
+        Name: !Sub ${VpcName}-${EnvironmentId}-${PublicBName}
+        EnvironmentId: !Ref EnvironmentId
+        Contact: !Ref Contact
+        ProjectId: !Ref ProjectId
+        ProjectData: !Ref ProjectData
+      Tags:
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${SubnetTemplate}
+      TimeoutInMinutes: 15
+  PublicBSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: Create2Azs
+    Properties:
+      SubnetId: !GetAtt PublicBSubnet.Outputs.MySubnetId
+      RouteTableId: !GetAtt PublicRouteTable.Outputs.RouteTableId
+  PublicCSubnet:
+    Type: AWS::CloudFormation::Stack
+    Condition: Create3Azs
+    Properties:
+      Parameters:
+        AvailabilityZone: !Select 
+          - 2
+          - Fn::GetAZs: !Ref 'AWS::Region'
+        CidrBlock: !Select [ 2, !Cidr [ !Ref VpcCidrBlock, 6, 8 ]]
+        MapPublicIpOnLaunch: !Ref MapPublicIpOnLaunch
+        VpcId: !GetAtt MyVpc.Outputs.MyVpcId
+        Name: !Sub ${VpcName}-${EnvironmentId}-${PublicCName}
+        EnvironmentId: !Ref EnvironmentId
+        Contact: !Ref Contact
+        ProjectId: !Ref ProjectId
+        ProjectData: !Ref ProjectData
+      Tags:
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${SubnetTemplate}
+      TimeoutInMinutes: 15
+  PublicCSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: Create3Azs
+    Properties:
+      SubnetId: !GetAtt PublicCSubnet.Outputs.MySubnetId
+      RouteTableId: !GetAtt PublicRouteTable.Outputs.RouteTableId
+  PrivateASubnet:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        AvailabilityZone: !Select 
+          - 0
+          - Fn::GetAZs: !Ref 'AWS::Region'
+        CidrBlock: !Select [ 3, !Cidr [ !Ref VpcCidrBlock, 6, 8 ]]
+        VpcId: !GetAtt MyVpc.Outputs.MyVpcId
+        Name: !Sub ${VpcName}-${EnvironmentId}-${PrivateAName}
+        EnvironmentId: !Ref EnvironmentId
+        Contact: !Ref Contact
+        ProjectId: !Ref ProjectId
+        ProjectData: !Ref ProjectData
+      Tags:
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${SubnetTemplate}
+      TimeoutInMinutes: 15
+  PrivateASubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !GetAtt PrivateASubnet.Outputs.MySubnetId
+      RouteTableId: !GetAtt PrivateARouteTable.Outputs.RouteTableId
+  PrivateBSubnet:
+    Type: AWS::CloudFormation::Stack
+    Condition: Create2Azs
+    Properties:
+      Parameters:
+        AvailabilityZone: !Select 
+          - 1
+          - Fn::GetAZs: !Ref 'AWS::Region'
+        CidrBlock: !Select [ 4, !Cidr [ !Ref VpcCidrBlock, 6, 8 ]]
+        VpcId: !GetAtt MyVpc.Outputs.MyVpcId
+        Name: !Sub ${VpcName}-${EnvironmentId}-${PrivateBName}
+        EnvironmentId: !Ref EnvironmentId
+        Contact: !Ref Contact
+        ProjectId: !Ref ProjectId
+        ProjectData: !Ref ProjectData
+      Tags:
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${SubnetTemplate}
+      TimeoutInMinutes: 15
+  PrivateBSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: Create2Azs
+    Properties:
+      SubnetId: !GetAtt PrivateBSubnet.Outputs.MySubnetId
+      RouteTableId: !GetAtt PrivateBRouteTable.Outputs.RouteTableId
+  PrivateCSubnet:
+    Type: AWS::CloudFormation::Stack
+    Condition: Create3Azs
+    Properties:
+      Parameters:
+        AvailabilityZone: !Select 
+          - 2
+          - Fn::GetAZs: !Ref 'AWS::Region'
+        CidrBlock: !Select [ 5, !Cidr [ !Ref VpcCidrBlock, 6, 8 ]]
+        VpcId: !GetAtt MyVpc.Outputs.MyVpcId
+        Name: !Sub ${VpcName}-${EnvironmentId}-${PrivateCName}
+        EnvironmentId: !Ref EnvironmentId
+        Contact: !Ref Contact
+        ProjectId: !Ref ProjectId
+        ProjectData: !Ref ProjectData
+      Tags:
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+      TemplateURL: !Sub ${NestedTemplateBaseUrl}${SubnetTemplate}
+      TimeoutInMinutes: 15
+  PrivateCSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: Create3Azs
+    Properties:
+      SubnetId: !GetAtt PrivateCSubnet.Outputs.MySubnetId
+      RouteTableId: !GetAtt PrivateCRouteTable.Outputs.RouteTableId
+  PublicANatGateway:
+    DependsOn: PrimaryIgwAttachment
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - PublicANatEip
+        - AllocationId
+      SubnetId: !GetAtt PublicASubnet.Outputs.MySubnetId
+      Tags:
+        - Key: Name
+          Value: !Sub ${VpcName}-${EnvironmentId}-${PublicANatName}
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+  PublicANatEip:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  PrivatANatRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !GetAtt PrivateARouteTable.Outputs.RouteTableId
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref PublicANatGateway
+  PublicBNatGateway:
+    DependsOn: PrimaryIgwAttachment
+    Type: AWS::EC2::NatGateway
+    Condition: Create2Azs
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - PublicBNatEip
+        - AllocationId
+      SubnetId: !GetAtt PublicBSubnet.Outputs.MySubnetId
+      Tags:
+        - Key: Name
+          Value: !Sub ${VpcName}-${EnvironmentId}-${PublicBNatName}
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+  PublicBNatEip:
+    Type: AWS::EC2::EIP
+    Condition: Create2Azs
+    Properties:
+      Domain: vpc
+  PrivatBNatRoute:
+    Type: AWS::EC2::Route
+    Condition: Create2Azs
+    Properties:
+      RouteTableId: !GetAtt PrivateBRouteTable.Outputs.RouteTableId
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref PublicBNatGateway
+  PublicCNatGateway:
+    DependsOn: PrimaryIgwAttachment
+    Type: AWS::EC2::NatGateway
+    Condition: Create3Azs
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - PublicCNatEip
+        - AllocationId
+      SubnetId: !GetAtt PublicCSubnet.Outputs.MySubnetId
+      Tags:
+        - Key: Name
+          Value: !Sub ${VpcName}-${EnvironmentId}-${PublicCNatName}
+        - Key: EnvironmentId
+          Value: !Ref EnvironmentId
+        - Key: Contact
+          Value: !Ref Contact
+        - Key: ProjectId
+          Value: !Ref ProjectId
+        - Key: ProjectData
+          Value: !Ref ProjectData
+  PublicCNatEip:
+    Condition: Create3Azs
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  PrivatCNatRoute:
+    Type: AWS::EC2::Route
+    Condition: Create3Azs
+    Properties:
+      RouteTableId: !GetAtt PrivateCRouteTable.Outputs.RouteTableId
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref PublicCNatGateway
+Outputs:
+  VpcStackRef:
+    Value: !Ref MyVpc
+  VpcId:
+    Value: !GetAtt MyVpc.Outputs.MyVpcId
+  IgwStackRef:
+    Value: !Ref PrimaryInternetGateway
+  PrimaryIgwId:
+    Value: !GetAtt PrimaryInternetGateway.Outputs.IgwId
+  PublicRouteTableId:
+    Value: !GetAtt PublicRouteTable.Outputs.RouteTableId
+
