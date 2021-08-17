@@ -1,5 +1,6 @@
 
 Resources:
-  MyS3Bucket:
+  CameronsAWSS3Bucket:
     Type: AWS::S3::Bucket
-    Properties: {}
+    Properties: 
+      "BucketName": "cameronsfavorites3cfnbucket"
