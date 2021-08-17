@@ -24,7 +24,6 @@ Resources:
       SecurityGroupIngress:
       - CidrIp: 0.0.0.0/0
         FromPort: 22
-        IpProtocol: tcp
         ToPort: 22
 
   # our second EC2 security group
