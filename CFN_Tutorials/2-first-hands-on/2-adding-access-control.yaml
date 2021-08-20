@@ -1,6 +1,7 @@
 
 Resources:
-  MyS3Bucket:
+  MyNewS3BucketName:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: PublicRead
+      BucketName: thisrequiresacompletereprovisions3
