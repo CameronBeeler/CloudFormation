@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create a Transit Gateway
+
+Parameters:
+  ProjectName:
+    Description: Add the name of your transit gateway project
+    Type: String
+  
+  VPCid:
+    Description:  Select an available VPC to attach to our TGW
+     Type: List<AWS::EC2::VPC::Id>
+
+  Product:
+    Description:  Please enter the product being created
+    Type: String
+    Default:  "Transitive multi-account network"
+
+    SubnetStringList:
+      Description: pick the subnets from the list
+        Type: List<AWS::EC2::Subnet::Id>
+
+  TagName:
+    Description:  Please enter the resource name prefix here
+    Type:  String
+
+Resources:
+  MyTransitGateWay:
+    Type: AWS::EC2::TransitGateway
+    Properties:
+     AmazonSideAsn: 65200
+     AutoAcceptSharedAttachments: enable
+     Description:  Auto creation of the Transit Gateway
+     MulticastSupport: disable
+     Tags: 
+     - Key: "Region"
+       Value: !Sub '${AWS::Region}'
+     - Key:  "Account"
+       Value: !Sub '${AWS::AccountId}'
+     - Key: "Product"
+       Value: !Ref Product
+     - Key: Name
+       Value: !Sub '${TagName}_tgw'
+  
+  MyTransitGatewayAttachment:
+   Type: "AWS::EC2::TransitGatewayAttachment"
+   Properties:
+     Tags: 
+     - Key: "Region"
+       Value: !Sub '${AWS::Region}'
+     - Key:  "Account"
+       Value: !Sub '${AWS::AccountId}'
+     - Key: "Product"
+       Value: !Ref Product
+     - Key: Resource
+       Value: !Sub '${TagName}_vpctgwa'
+     TransitGatewayId: !Ref MyTransitGateWay
+     VPCId: !Ref VPCId

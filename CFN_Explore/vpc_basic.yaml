@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: A simple CloudFormation VPC template
+
+Parameters:
+     VPCCidr:
+       Description:  Please enter a VPC CIDR
+       Type: String
+       Default:  10.0.0.0/20
+
+     Product:
+       Description:  Please enter the Product this is being built to support
+       Type: String
+
+     TagName:
+        Description:  Please enter the resource name prefix here
+        Type:  String
+
+       
+Resources:
+     myVPC:
+       Type: AWS::EC2::VPC
+       Properties:
+         CidrBlock: !Ref VPCCidr
+         EnableDnsHostnames: true
+         EnableDnsSupport: true
+         InstanceTenancy: default
+         Tags: 
+          - Key: "Attempt"
+            Value: "FirstTry"
+          - Key: "Region"
+            Value: !Sub '${AWS::Region}'
+          - Key:  "Account"
+            Value: !Sub '${AWS::AccountId}'
+          - Key: "Product"
+            Value: !Ref Product
+          - Key: Name
+            Value: !Sub '${TagName}_vpc'
