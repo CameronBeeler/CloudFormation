@@ -14,7 +14,6 @@ Parameters:
      TagName:
         Description:  Please enter the resource name prefix here
         Type:  String
-
        
 Resources:
      myVPC:
@@ -25,8 +24,6 @@ Resources:
          EnableDnsSupport: true
          InstanceTenancy: default
          Tags: 
-          - Key: "Attempt"
-            Value: "FirstTry"
           - Key: "Region"
             Value: !Sub '${AWS::Region}'
           - Key:  "Account"

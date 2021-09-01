@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: A simple CloudFormation VPC template
+
+# the Parameters are just copied from the VPC as placeholders...
+Parameters:
+     VPCCidr:
+       Description:  Please enter a VPC CIDR
+       Type: String
+       Default:  10.0.0.0/20
+
+     Product:
+       Description:  Please enter the Product this is being built to support
+       Type: String
+
+     TagName:
+        Description:  Please enter the resource name prefix here
+        Type:  String
+
+
+  MyTransitGatewayAttachment:
+   Type: "AWS::EC2::TransitGatewayAttachment"
+   Properties:
+     Tags: 
+     - Key: "Region"
+       Value: !Sub '${AWS::Region}'
+     - Key:  "Account"
+       Value: !Sub '${AWS::AccountId}'
+     - Key: "Product"
+       Value: !Ref Product
+     - Key: Resource
+       Value: !Sub '${TagName}_vpctgwa'
+     TransitGatewayId: !Ref MyTransitGateWay
+     VPCId: !Ref VPCId

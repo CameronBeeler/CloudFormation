@@ -5,32 +5,77 @@ Parameters:
   ProjectName:
     Description: Add the name of your transit gateway project
     Type: String
-  
-  VPCid:
-    Description:  Select an available VPC to attach to our TGW
-     Type: List<AWS::EC2::VPC::Id>
-
+  OrgId: 
+    Type: String
+    Description: Enter Organization Id (e.g. o-12345) if Organization sharing is enabled
+  LocalASN:
+    Description: Add a unique ASN for this transit gateway
+    Type: Number
+    Default: 64512
+    MinValue: 64512
+    MaxValue: 65534
+    ConstraintDescription: Must be between between 64512 and 65534
+  TransitGatewayName:
+    Type: String
+    Default: Transit Gateway
+  ShareWithOrg: 
+    Type: String
+    Default: 'false'
+    Description: Enable sharing with all AWS Accounts in an AWS Organization
+    AllowedValues: 
+      - true
+      - false
+# For tagging
   Product:
     Description:  Please enter the product being created
     Type: String
     Default:  "Transitive multi-account network"
 
-    SubnetStringList:
-      Description: pick the subnets from the list
-        Type: List<AWS::EC2::Subnet::Id>
+#  MasterAccountId:
+#    Type: String
+#    Description: Account Id of master account in AWS Organization
+#    Default: !Sub '${AWS::AccountId}'
 
-  TagName:
-    Description:  Please enter the resource name prefix here
-    Type:  String
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Transit Gateway Details
+        Parameters:
+          - TransitGatewayName
+      - Label:
+          default: (Optional) Enable sharing with an AWS Organization
+        Parameters:
+          - ShareWithOrg
+          - OrgId
+          - !Sub '${AWS::AccountId}'
+    ParameterLabels:
+      TransitGatewayName:
+        default: Transit Gateway Name
+      ShareWithOrg:
+        default: Enable Sharing with an Organization
+      OrgId:
+        default: AWS Organization Id
+      MasterAccountId:
+        default: Master Account Id
+
+Conditions:
+  EnableRAM: !Equals
+      - !Ref ShareWithOrg
+      - true
 
 Resources:
-  MyTransitGateWay:
+  MyTransitGateway:
     Type: AWS::EC2::TransitGateway
     Properties:
      AmazonSideAsn: 65200
      AutoAcceptSharedAttachments: enable
+     DefaultRouteTableAssociation: enable
+     DefaultRouteTablePropagation: enable
      Description:  Auto creation of the Transit Gateway
      MulticastSupport: disable
+     DnsSupport: enable
+     VpnEcmpSupport: enable
      Tags: 
      - Key: "Region"
        Value: !Sub '${AWS::Region}'
@@ -39,19 +84,35 @@ Resources:
      - Key: "Product"
        Value: !Ref Product
      - Key: Name
-       Value: !Sub '${TagName}_tgw'
-  
-  MyTransitGatewayAttachment:
-   Type: "AWS::EC2::TransitGatewayAttachment"
-   Properties:
-     Tags: 
-     - Key: "Region"
-       Value: !Sub '${AWS::Region}'
-     - Key:  "Account"
-       Value: !Sub '${AWS::AccountId}'
-     - Key: "Product"
-       Value: !Ref Product
-     - Key: Resource
-       Value: !Sub '${TagName}_vpctgwa'
-     TransitGatewayId: !Ref MyTransitGateWay
-     VPCId: !Ref VPCId
+       Value: !Sub '${TransitGatewayName}_tgw'
+ 
+  TransitGatewayShare:
+    Type: "AWS::RAM::ResourceShare"
+    DependsOn: MyTransitGateway
+    Condition: EnableRAM
+    Properties:
+      AllowExternalPrincipals: true
+      Name: TransitGatewayOrgShare
+      Principals: 
+        - !Sub 'arn:aws:organizations::${AWS::AccountId}:organization/${OrgId}'
+      ResourceArns: 
+        - !Sub 'arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:transit-gateway/${MyTransitGateway}'
+
+  TransitGatewayDMZRouteDomainId:
+    Type: "AWS::EC2::TransitGatewayRouteTable"
+    Properties:
+      TransitGatewayId: !Ref MyTransitGateway
+      Tags:
+        - Key: Name
+          Value: DMZ Routing Domain
+
+Outputs:
+  TransitGatewayId: 
+    Description: 'TransitGateway Id'
+    Value: !Ref MyTransitGateway
+
+  TgwDMZRouteDomainId:
+    Description: 'Transit Gateway DMZ Route Domain'
+    Value: !Ref TransitGatewayDMZRouteDomainId
+    Export:
+      Name: TransitGatewayDMZRouteDomain
