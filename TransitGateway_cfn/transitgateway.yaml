@@ -5,9 +5,11 @@ Parameters:
   ProjectName:
     Description: Add the name of your transit gateway project
     Type: String
+# this is where the value for the AWS Organization goes...cannot infer it - no variable for that.
   OrgId: 
     Type: String
     Description: Enter Organization Id (e.g. o-12345) if Organization sharing is enabled
+# The AWS documentation suggests that AWS side local ASN's should be unique
   LocalASN:
     Description: Add a unique ASN for this transit gateway
     Type: Number
@@ -15,9 +17,11 @@ Parameters:
     MinValue: 64512
     MaxValue: 65534
     ConstraintDescription: Must be between between 64512 and 65534
+# Our transit gateway name will be stored in all of the resources associated with it, in the tags
   TransitGatewayName:
     Type: String
     Default: Transit Gateway
+# This conditional identifies if we intend to share the transit gateway as a resource via RAM
   ShareWithOrg: 
     Type: String
     Default: 'false'
@@ -25,17 +29,13 @@ Parameters:
     AllowedValues: 
       - true
       - false
-# For tagging
+# For tagging all related resources
   Product:
     Description:  Please enter the product being created
     Type: String
     Default:  "Transitive multi-account network"
 
-#  MasterAccountId:
-#    Type: String
-#    Description: Account Id of master account in AWS Organization
-#    Default: !Sub '${AWS::AccountId}'
-
+# Metadata is used to format the parameter entry screens
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -111,7 +111,7 @@ Outputs:
     Description: 'TransitGateway Id'
     Value: !Ref MyTransitGateway
 
-  TgwDMZRouteDomainId:
+  TransitGatewayDMZRouteDomainId:
     Description: 'Transit Gateway DMZ Route Domain'
     Value: !Ref TransitGatewayDMZRouteDomainId
     Export:

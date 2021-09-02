@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create Transit Gateway Attachments
+
+# What is required to attach a vpc to a transit gateway
+# 1. a VPC id
+# 2. one or more Subnets in the VPC
+# 3. a Regional Transit Gateway
+#4. 
+
+Parameters:
+# Select the Transit Gateway that you want to attach to 
+TargetTransitGateway
+  Type: String
+  Description: gotta enter a string value here
+  Default:  String data here
+
+# Select the VPC that you want to attach to the TransitGateway
+TargetVPCIdAttach:
+  Type: String
+  Description: gotta enter a string value here
+  Default:  String data here
+
+
+Resources:
+ 
+  MyTransitGatewayAttachment:
+   Type: "AWS::EC2::TransitGatewayAttachment"
+   Properties:
+     Tags: 
+     - Key: "Region"
+       Value: !Sub '${AWS::Region}'
+     - Key:  "Account"
+       Value: !Sub '${AWS::AccountId}'
+     - Key: "Product"
+       Value: !Ref Product
+     - Key: Resource
+       Value: !Sub '${TagName}_vpctgwa'
+     TransitGatewayId: !Ref MyTransitGateWay
+     VPCId: !Ref VPCId
