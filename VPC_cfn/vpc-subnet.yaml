@@ -13,6 +13,10 @@ Metadata:
           default: CIDR range assignment to the VPC
         Parameters:
           - MyCidrBlock
+          - MyEnableDnsHostnames 
+          - MyEnableDnsSupport
+          - MyAvailabilityZone 
+          - MapPublicIPOnLaunch
     ParameterLabels:
       MyAccountName:
         default: The name of the AWS Account being used
@@ -34,14 +38,38 @@ Parameters:
     MaxLength: 18
     Default: 10.0.0.0/16
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|1[0-9]|2[0-4]))$
+#  MyAvailabilityZone:
+#    Description: Availability zone of the subnet
+#    Type: AWS::EC2::AvailabilityZone::Name
+  MapPublicIPOnLaunch: 
+    Description: Automatically assign public IPs to instances
+    AllowedValues:
+    - true
+    - false
+    Type: String
+    Default: true
+  MyEnableDnsHostnames:
+    Description:  Enable VPC DNS Hostname lookups
+    AllowedValues:
+    - true
+    - false
+    Type: String
+    Default: true
+  MyEnableDnsSupport:
+    Description:  Enable VPC DNS Support 
+    AllowedValues:
+    - true
+    - false
+    Type: String
+    Default: true
 
 Resources:
   MyVPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref MyCidrBlock
-      EnableDnsHostnames: true
-      EnableDnsSupport: true
+      EnableDnsHostnames: !Ref MyEnableDnsHostnames
+      EnableDnsSupport: !Ref MyEnableDnsSupport
       InstanceTenancy: default
       Tags: 
       - Key: "Region"
@@ -103,3 +131,49 @@ Resources:
         Ref: InternetGateway
       RouteTableId:
         Ref: PublicRouteTable
+
+  MySubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select 
+      - 0 
+      - Fn::GetAZs: !Ref 'AWS::Region'
+      CidrBlock: !Select 
+      - 0
+      -  Fn::Cidr: [ !Ref MyCidrBlock, 1, 8 ]
+      MapPublicIpOnLaunch: !Ref MapPublicIPOnLaunch
+      VpcId: !Ref MyVPC
+      Tags: 
+      - Key: "Region"
+        Value: !Sub '${AWS::Region}'
+      - Key:  "Account"
+        Value: !Sub '${AWS::AccountId}'
+      - Key:  Account Name
+        Value:  !Ref MyAccountName
+      - Key: Name
+        Value: !Sub '${MyVPCName}_vpc'
+      - Key:  Resource
+        Value: Public Subnet
+
+  MySubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+     RouteTableId: !Ref PublicRouteTable 
+     SubnetId:  !Ref MySubnet
+
+Outputs:
+  MyVpcId:
+    Description: The ID of the VPC
+    Value: !Ref MyVPC
+    Export:
+      Name: !Sub "${AWS::StackName}-vpcid"
+  MyPublicRouteTableId:
+   Description:  The ID of the Public Route Table
+   Value:  !Ref PublicRouteTable
+   Export:
+    Name: !Sub "${AWS::StackName}-rtid"
+  MySubnetId:
+    Description: The ID of the subnet
+    Value: !Ref MySubnet
+    Export:
+      Name: !Sub "${AWS::StackName}-SubnetID"
