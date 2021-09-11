@@ -53,7 +53,7 @@ Metadata:
       TransitGatewayName:
         default: Transit Gateway Name
       ShareWithOrg:
-        default: Enable Sharing with an Organization
+        default: Enable Sharing within an Organization
       OrgId:
         default: AWS Organization Id
       MasterAccountId:
@@ -68,7 +68,7 @@ Resources:
   MyTransitGateway:
     Type: AWS::EC2::TransitGateway
     Properties:
-     AmazonSideAsn: 65200
+     AmazonSideAsn: !Ref LocalASN
      AutoAcceptSharedAttachments: enable
      DefaultRouteTableAssociation: enable
      DefaultRouteTablePropagation: enable
