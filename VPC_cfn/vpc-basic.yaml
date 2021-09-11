@@ -1,11 +1,11 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: VPC creation only - the simplest possible vpc config (with CIDR, IGW, route tables & Name parameters, of course )
-
+# Amongst other things, used for CFN labeling and grouping user entry
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: VPC Naming Conventions
+          default: Naming Conventions
         Parameters:
           - MyAccountName
           - MyVPCName
