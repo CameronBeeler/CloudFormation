@@ -103,3 +103,15 @@ Resources:
         Ref: InternetGateway
       RouteTableId:
         Ref: PublicRouteTable
+
+Outputs:
+  MyVpcId:
+    Description: The ID of the VPC
+    Value: !Ref MyVPC
+    Export:
+      Name: !Sub "${AWS::StackName}-vpcid"
+  MyPublicRouteTableId:
+   Description:  The ID of the Public Route Table
+   Value:  !Ref PublicRouteTable
+   Export:
+    Name: !Sub "${AWS::StackName}-rtid"
