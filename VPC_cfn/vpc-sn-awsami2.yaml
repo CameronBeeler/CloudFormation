@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: VPC creation only - the simplest possible vpc config (with CIDR, IGW, route tables & Name parameters, of course )
-# Amongst other things, used for CFN labeling and grouping user entry
+Description: VPC creation to include one public subnet and one public ec2 instance t3.micro of the most recent AWS linux ami V2
+
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -58,6 +58,9 @@ Parameters:
     - false
     Type: String
     Default: true
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
 
 Resources:
   MyVPC:
@@ -157,6 +160,67 @@ Resources:
      RouteTableId: !Ref PublicRouteTable 
      SubnetId:  !Ref MySubnet
 
+  MyAWSLinuxAmi2:
+    Type:  AWS::EC2::Instance
+    Properties: 
+      SubnetId:  !Ref MySubnet
+      AvailabilityZone: !Select 
+      - 0 
+      - Fn::GetAZs: !Ref 'AWS::Region' 
+      ImageId:  !Ref LatestAmiId
+      InstanceType: t3.micro
+      IamInstanceProfile: !Ref MyIAMInstanceProfile
+      SecurityGroupIds:  
+      - Fn::GetAtt: MyEC2SecurityGroup.GroupId
+
+# i need to attach the appropriate security group to my EC2 instance
+  MyEC2SecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription:  public access to a test EC2 AWS-Linux AMI v2
+        VpcId: !Ref MyVPC
+        SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+        SecurityGroupEgress:
+        - IpProtocol: '-1'
+          FromPort: 0
+          ToPort:   65535
+          CidrIp:  0.0.0.0/0
+
+## i need to create and attach the IAM policy to the EC2 instance 
+  MyInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+        - arn:aws:iam::aws:policy/CloudWatchFullAccess 
+        - arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy 
+        - arn:aws:iam::aws:policy/AmazonEC2FullAccess 
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess 
+      MaxSessionDuration: 14400
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+        Version: '2012-10-17'
+      Path: /
+
+  MyIAMInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: cfn-SM-CWUA-CW-EC2-S3-role
+      Path: /
+      Roles:
+      - !Ref MyInstanceRole
+
 Outputs:
   MyVpcId:
     Description: The ID of the VPC
@@ -173,3 +237,6 @@ Outputs:
     Value: !Ref MySubnet
     Export:
       Name: !Sub "${AWS::StackName}-SubnetID"
+  MyEC2Instance:
+   Description:  My instance ID
+   Value:  !Ref MyAWSLinuxAmi2
