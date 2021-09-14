@@ -169,9 +169,12 @@ Resources:
       - Fn::GetAZs: !Ref 'AWS::Region' 
       ImageId:  !Ref LatestAmiId
       InstanceType: t3.micro
-      IamInstanceProfile: !Ref MyIAMInstanceProfile
+      IamInstanceProfile: !ImportValue InstanceProfileName
       SecurityGroupIds:  
       - Fn::GetAtt: MyEC2SecurityGroup.GroupId
+      Tags:
+      - Key: Name
+        Value: !Sub 'TestInstance-${MyVPCName}_ami2'
 
 # i need to attach the appropriate security group to my EC2 instance
   MyEC2SecurityGroup:
@@ -179,47 +182,24 @@ Resources:
       Properties:
         GroupDescription:  public access to a test EC2 AWS-Linux AMI v2
         VpcId: !Ref MyVPC
+        GroupName: !Sub 'TestInstanceSecurityGroup-${MyVPCName}'
         SecurityGroupIngress:
         - CidrIp: 0.0.0.0/0
-          FromPort: 22
+          IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+        - CidrIp: 0.0.0.0/0
           IpProtocol: tcp
+          FromPort: 22
           ToPort: 22
         SecurityGroupEgress:
-        - IpProtocol: '-1'
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: '-1'
           FromPort: 0
           ToPort:   65535
-          CidrIp:  0.0.0.0/0
-
-## i need to create and attach the IAM policy to the EC2 instance 
-  MyInstanceRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
-        - arn:aws:iam::aws:policy/CloudWatchFullAccess 
-        - arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy 
-        - arn:aws:iam::aws:policy/AmazonEC2FullAccess 
-        - arn:aws:iam::aws:policy/AmazonS3FullAccess 
-      MaxSessionDuration: 14400
-      AssumeRolePolicyDocument:
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - ec2.amazonaws.com
-        Version: '2012-10-17'
-      Path: /
-
-  MyIAMInstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      InstanceProfileName: cfn-SM-CWUA-CW-EC2-S3-role
-      Path: /
-      Roles:
-      - !Ref MyInstanceRole
+        Tags:
+        - Key: Name
+          Value: !Sub 'TestInstanceSecurityGroup-${MyVPCName}_sg'
 
 Outputs:
   MyVpcId:

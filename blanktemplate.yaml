@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion: 2010-09-09  # Optional
+Description: # Optional
+
+Parameters: # Optional
+
+Mappings: # Optional
+
+Conditions: # Optional
+
+Resources:  # Required
+
+Outputs:  # Optional

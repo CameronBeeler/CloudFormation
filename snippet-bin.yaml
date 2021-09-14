@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create Transit Gateway VPC Attachments
+# I used the following source as an example to learn from - Cudos to https://github.com/vaidys2020.
+# https://github.com/aws-samples/aws-transit-gateway-and-scalable-security-solutions/blob/main/transit-gateway-attachment.yaml
+
+
+Parameters:
+  MyOrganization:
+    Description:  Please enter your organization number here
+    Type:  String
+    Default: o-default
+
+  MyAccountName:
+    Description: Please enter your target AWS Account Name
+    Type: String
+    Default:  MyDefaultAccountName
+
+  VPCId:
+    Description:  Please enter a VPC CIDR
+    Type: 'List<AWS::EC2::VPC::Id>'
+
+  MySubnetList:
+    Description: Select the subnets to attach with the VPC to the Transit Gateway
+    Type: List<AWS::EC2::Subnet::Id>
+    VpcId: VPCId
+
+  SubnetRouteTableId:
+    Description:  Select the subnet route table we are going to update
+    Type: String
+
+  Product:
+    Description:  Please enter the Product this is being built to support
+    Type: String
+
+  TagName:
+    Description:  Please enter the resource name prefix here
+    Type:  String
+
+TargetTransitGatewayId:
+  Type: String
+  Description: type the transit gateway id here
+
+DestCIDRBlock:
+  Type:  String
+  Description:  Please enter the destination CIDR for  the transitgateway attachment
+       
+Resources:
+  MyTransitGatewayAttachmentId:
+   Type: AWS::EC2::TransitGatewayAttachment
+   Properties:
+      VpcId:  !Ref VPCId
+      TransitGatewayId:  !Ref TransitGateway
+      SubnetId:  !Ref MySubnetList   
+      Tags: 
+      - Key:  Account
+        Value: !Sub '${AWS::AccountId}'
+      - Key:  Account Name
+        Value:  !Ref MyAccountName
+      - Key: Product
+        Value: !Ref Product
+      - Key: Name
+        Value: !Sub '${AccountName}${AWS::Region}TGW_vpc'
+      - Key:  Resource
+        Value: VPC
+      - Key: Organization
+        Value: !Ref MyOrganization
+
+  MyTGWRouteTable:
+   Type:  AWS::EC2::TransitGatewayRoute
+   Properties: 
+     TransitGatewayId: !Ref TargetTransitGatewayId
+     SubnetIds: !Ref MySubnetList
+     VpcId: !Ref VPCId
+
+  TgwRoute:
+    Type: AWS::EC2::Route
+    DependsOn: TgwAttachmentId
+    Properties:
+      RouteTableId: !Ref SubnetRoutingtableId
+      DestinationCidrBlock: !Ref DestCIDRBlock
+      TransitGatewayId: !Ref TgwId 
+
+Outputs:
+  OrginazationOutput:
+    Description: Organization Id
+    Value: !Ref MyOrganization
+  AccountOutput:
+   Description: Account Number
+   Value:  !Sub '${AWS::AccountId}' 
+  AccountNameOutput:
+    Description:  Account Name
+    Value:  !Ref MyAccountName
+    VPCIdOutput: 
+     Description: VPC Id
+     Value: !Ref VPCId
+  TGWOutput:
+   Description: The Transit Gateway Id
+   Value:  !Ref TargetTransitGatewayId
+  TGWAttachmentOutput:
+   Description: The Transit Gateway Id
+   Value:  !Ref MyTransitGatewayAttachmentId

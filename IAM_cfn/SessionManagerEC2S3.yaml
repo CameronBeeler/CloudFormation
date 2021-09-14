@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: 2010-09-09  # Optional
+Description:  just creating an iam role for testing purposes
+
+Resources:
+  MyInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+        - arn:aws:iam::aws:policy/CloudWatchFullAccess 
+        - arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy 
+        - arn:aws:iam::aws:policy/AmazonEC2FullAccess 
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess 
+      MaxSessionDuration: 14400
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+        Version: '2012-10-17'
+      Path: /
+
+  MyIAMInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: cfn-SM-CWUA-CW-EC2-S3-role
+      Path: /
+      Roles:
+      - !Ref MyInstanceRole
+
+Outputs:
+  InstanceProfileName:
+    Description:   The name of the IAM role
+    Value: !Ref MyIAMInstanceProfile
+    Export:
+      Name: InstanceProfileName
+
+  MyInstanceRole:
+    Description: My Instance IAM role that includes SM, S3, EC2, CWUA, and CW
+    Value: !Ref MyInstanceRole
+    Export:
+      Name: MyInstanceIAMRole
+
