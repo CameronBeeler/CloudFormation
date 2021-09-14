@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: 2010-09-09  # Optional
+Description: Creating a Global Network Manager
+
+Resources: 
+  GlobalNetManager:
+    Type: AWS::NetworkManager::GlobalNetwork
+    Properties: 
+      Description: String
+      Tags: 
+      - Key: Region
+        Value: !Sub '${AWS::Region}'
+      - Key:  Account
+        Value: !Sub '${AWS::AccountId}'
+      - Key: Resource
+        Value: Global Network Manager
+      - Key: Name
+        Value: The Global Network Manager
+
+Outputs:
+  GlobalNetManager:
+    Description: The ID of the Global Network Manager
+    Value: !Ref GlobalNetManager
+    Export:
+      Name:  TheGlobalNetworkManagerId

@@ -5,13 +5,13 @@ Description: Create Transit Gateway VPC Attachments
 
 
 Parameters:
-  MyChosenTransitGateway:
+  TransitGatewayId:
     Description:  Please enter the transit gateway id
     Type:  String
 
   MyAccountName:
     Description:  Please enter the AWS account Name
-      Type: String
+    Type: String
 
   MyTargetVPC:
     Description: Select the Transit Gateway that you would like to attach to
@@ -21,11 +21,39 @@ Parameters:
     Description: Select the Subnets you would like to target for attachment
     Type: List<AWS::EC2::Subnet::Id>
 
+
+# Metadata is used to format the parameter entry screens
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Account Info
+      Parameters:
+        - MyAccountName
+    - Label:
+          default: VPC Info
+      Parameters:
+        - MyTargetVPC
+        - MyTargetSubnets
+    - Label:
+        default:  Transit Gateway Information
+      Parameters:
+        - TransitGatewayId
+    ParameterLabels:
+      MyAccountName:
+        default:  What is the name of the AWS Account
+      TransitGatewayId:
+        default: The ID of the Transit Gateway
+      MyTargetVPC:
+        default:  Which VPC are we attaching to the Transit Gateway
+      MyTargetSubnets:
+        default:  Which subnets are we associating with the VPC & Transit Gateway
+
 Resources:
   MyTransitGatewayAttachmentId:
    Type: AWS::EC2::TransitGatewayAttachment
    Properties:
-      TransitGatewayId:  !Ref MyChosenTransitGateway
+      TransitGatewayId:  !Ref TransitGatewayId
       VpcId:  !Ref MyTargetVPC
       SubnetIds:  !Ref MyTargetSubnets
       Tags: 
@@ -34,28 +62,25 @@ Resources:
       - Key:  Account Name
         Value:  !Ref MyAccountName
       - Key: Name
-        Value: !Sub '${AccountName}${AWS::Region}TGW_vpc'
+        Value: !Sub '${MyAccountName}${AWS::Region}TGW_vpc'
       - Key:  Resource
         Value: VPC
-      - Key: Organization
-        Value: !Ref MyOrganization
 
 Outputs:
-  OrginazationOutput:
-    Description: Organization Id
-    Value: !Ref MyOrganization
   AccountOutput:
    Description: Account Number
    Value:  !Sub '${AWS::AccountId}' 
   AccountNameOutput:
     Description:  Account Name
     Value:  !Ref MyAccountName
-    VPCIdOutput: 
-     Description: VPC Id
-     Value: !Ref VPCId
+  VPCIdOutput: 
+    Description: The selected VPC to attach to
+    Value: !Ref MyTargetVPC
   TGWOutput:
-   Description: The Transit Gateway Id
-   Value:  !Ref TargetTransitGatewayId
+    Description: The Transit Gateway Id
+    Value:  !Ref TransitGatewayId
   TGWAttachmentOutput:
-   Description: The Transit Gateway Id
-   Value:  !Ref MyTransitGatewayAttachmentId
+    Description: The Transit Gateway Id
+    Value:  !Ref MyTransitGatewayAttachmentId
+    Export:
+     Name:  !Sub 'tgw-vpc-att-${MyTargetVPC}-${TransitGatewayId}'

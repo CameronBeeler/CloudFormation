@@ -2,9 +2,6 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: Create a Transit Gateway
 
 Parameters:
-  ProjectName:
-    Description: Add the name of your transit gateway project
-    Type: String
 # this is where the value for the AWS Organization goes...cannot infer it - no variable for that.
   OrgId: 
     Type: String
@@ -24,11 +21,21 @@ Parameters:
 # This conditional identifies if we intend to share the transit gateway as a resource via RAM
   ShareWithOrg: 
     Type: String
-    Default: 'false'
+    Default: false
     Description: Enable sharing with all AWS Accounts in an AWS Organization
     AllowedValues: 
       - true
       - false
+
+# For tagging all related resources
+  ConnectToGlobalNetworkManager:
+    Type: String
+    Default: false
+    Description: Do you have a Global Network Manager you want to share this with?
+    AllowedValues: 
+      - true
+      - false
+
 # For tagging all related resources
   Product:
     Description:  Please enter the product being created
@@ -43,12 +50,17 @@ Metadata:
           default: Transit Gateway Details
         Parameters:
           - TransitGatewayName
+          - Product
+          - LocalASN
       - Label:
           default: (Optional) Enable sharing with an AWS Organization
         Parameters:
           - ShareWithOrg
           - OrgId
-          - !Sub '${AWS::AccountId}'
+      - Label:
+          default: (Optional) Enable registration with a Global Network Manager
+        Parameters:
+          - ConnectToGlobalNetworkManager
     ParameterLabels:
       TransitGatewayName:
         default: Transit Gateway Name
@@ -56,12 +68,16 @@ Metadata:
         default: Enable Sharing within an Organization
       OrgId:
         default: AWS Organization Id
-      MasterAccountId:
-        default: Master Account Id
 
 Conditions:
-  EnableRAM: !Equals
+  EnableRAM: 
+    !Equals
       - !Ref ShareWithOrg
+      - true
+
+  EnableGlobalNetworkManager:  
+    !Equals 
+      - !Ref ConnectToGlobalNetworkManager
       - true
 
 Resources:
@@ -106,6 +122,14 @@ Resources:
         - Key: Name
           Value: DMZ Routing Domain
 
+  TheGlobalNetworkManager:
+    Type: AWS::NetworkManager::TransitGatewayRegistration
+    DependsOn: MyTransitGateway
+    Condition: EnableGlobalNetworkManager
+    Properties: 
+      GlobalNetworkId: !ImportValue TheGlobalNetworkManagerId
+      TransitGatewayArn: !Sub 'arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:transit-gateway/${MyTransitGateway}'
+
 Outputs:
   TransitGatewayId: 
     Description: 'TransitGateway Id'
@@ -115,4 +139,4 @@ Outputs:
     Description: 'Transit Gateway DMZ Route Domain'
     Value: !Ref TransitGatewayDMZRouteDomainId
     Export:
-      Name: TransitGatewayDMZRouteDomain
+      Name: !Sub '${AWS::Region}::${AWS::AccountId}-tmg-rt'

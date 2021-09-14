@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion: 2010-09-09  # Optional
+Description: creating an attachment for the regional tgws
+
+Parameters:
+  TGNMId:
+    Description: What is the Global Network Manager Id?
+    Type: String 
+
+  MyTransitGateway:
+    Description:  What is my Transit Gateway Id?
+    Type: String
+
+Resources:
+  AttachTGWtoNetworkManager:
+    Type: AWS::NetworkManager::TransitGatewayRegistration
+    Properties: 
+      GlobalNetworkId: !Ref TGNMId
+      TransitGatewayArn:  !Sub 'arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:transit-gateway/${MyTransitGateway}'
