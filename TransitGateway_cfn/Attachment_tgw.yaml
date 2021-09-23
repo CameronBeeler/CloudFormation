@@ -1,33 +1,58 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: A simple CloudFormation VPC template
 
-# the Parameters are just copied from the VPC as placeholders...
 Parameters:
-     VPCCidr:
-       Description:  Please enter a VPC CIDR
-       Type: String
-       Default:  10.0.0.0/20
+  TGWId:
+    Description: Enter the master transit gateway id 
+    Type: String
+  PeerTGWId:
+    Description: Enter the transit gateway id from the other region
+    Type: String
+  TGWRegion:
+    Description: Enter the transit gateway id from the other region
+    Type: String
 
-     Product:
-       Description:  Please enter the Product this is being built to support
-       Type: String
+# Metadata is used to format the parameter entry screens
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Transit Gateway Details
+        Parameters:
+          - TGWId
+          - PeerTGWId
+          - TGWRegion
+      - Label:
+          default: (Optional) Enable sharing with an AWS Organization
+        Parameters:
+          - ShareWithOrg
+          - OrgId
+      - Label:
+          default: (Optional) Enable registration with a Global Network Manager
+        Parameters:
+          - ConnectToGlobalNetworkManager
+    ParameterLabels:
+      TransitGatewayName:
+        default: Transit Gateway Name
+      ShareWithOrg:
+        default: Enable Sharing within an Organization
+      OrgId:
+        default: AWS Organization Id
 
-     TagName:
-        Description:  Please enter the resource name prefix here
-        Type:  String
-
-
-  MyTransitGatewayAttachment:
-   Type: "AWS::EC2::TransitGatewayAttachment"
-   Properties:
-     Tags: 
-     - Key: "Region"
-       Value: !Sub '${AWS::Region}'
-     - Key:  "Account"
-       Value: !Sub '${AWS::AccountId}'
-     - Key: "Product"
-       Value: !Ref Product
-     - Key: Resource
-       Value: !Sub '${TagName}_vpctgwa'
-     TransitGatewayId: !Ref MyTransitGateWay
-     VPCId: !Ref VPCId
+    
+# the Parameters are just copied from the VPC as placeholders...
+Resources:
+  TransitGatewayPeering:
+    Type: AWS::EC2::TransitGatewayPeeringAttachment
+    Properties: 
+      PeerAccountId: !Sub '${AWS::AccountId}'
+      PeerRegion: !Ref TGWRegion
+      PeerTransitGatewayId: !Ref PeerTGWId
+      Tags: 
+      - Key:  Resource
+        Value: Transit Gateway Peer Attachment
+      - Key:  Region
+        Value: !Sub '${AWS::Region}'
+      - Key:  Account
+        Value:  !Sub '${AWS::AccountId}'
+      TransitGatewayId: !Ref TGWId
