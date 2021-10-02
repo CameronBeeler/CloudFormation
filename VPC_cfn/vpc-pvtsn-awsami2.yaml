@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: VPC creation to include one public subnet and one public ec2 instance t3.micro of the most recent AWS linux ami V2
+Description: VPC creation to include one private subnet and one private ec2 instance t3.micro of the most recent AWS linux ami V2
 # for private instances, we need to create 3 privatelink endpoints to enable Session Manager
 # com.amazonaws.us-west-2.ssm
 # com.amazonaws.us-west-2.ssmmessages
@@ -21,7 +21,6 @@ Metadata:
           - MyCidrBlock
           - MyEnableDnsHostnames 
           - MyEnableDnsSupport
-          - MapPublicIPOnLaunch
     ParameterLabels:
       MyAccountName:
         default: The name of the AWS Account being used
@@ -33,7 +32,7 @@ Parameters:
     Description: Please enter the name of the AWS Account
     Type: String
   MyVPCName:
-    Description: Please enter the name of this MyVPC
+    Description: Please enter the name of this MyPrivateVPC
     Type: String
     Default: MyCFNCreatedVPC
   MyCidrBlock:
@@ -43,13 +42,6 @@ Parameters:
     MaxLength: 18
     Default: 10.0.0.0/16
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|1[0-9]|2[0-4]))$
-  MapPublicIPOnLaunch: 
-    Description: Automatically assign public IPs to instances
-    AllowedValues:
-    - true
-    - false
-    Type: String
-    Default: true
   MyEnableDnsHostnames:
     Description:  Enable VPC DNS Hostname lookups
     AllowedValues:
@@ -69,7 +61,7 @@ Parameters:
     Default: "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
 
 Resources:
-  MyVPC:
+  MyPrivateVPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref MyCidrBlock
@@ -88,55 +80,6 @@ Resources:
       - Key:  Resource
         Value: VPC
 
-  InternetGateway:
-    Type: AWS::EC2::InternetGateway
-    Properties:
-      Tags: 
-      - Key: "Region"
-        Value: !Sub '${AWS::Region}'
-      - Key:  "Account"
-        Value: !Sub '${AWS::AccountId}'
-      - Key:  Account Name
-        Value:  !Ref MyAccountName
-      - Key: Name
-        Value: !Sub '${MyVPCName}_igw'
-      - Key:  Resource
-        Value: Internet Gateway
-
-  GatewayAttachment:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      InternetGatewayId:
-        Ref: InternetGateway
-      VpcId:
-        Ref: MyVPC
-
-  PublicRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId:
-        Ref: MyVPC
-      Tags: 
-      - Key: "Region"
-        Value: !Sub '${AWS::Region}'
-      - Key:  "Account"
-        Value: !Sub '${AWS::AccountId}'
-      - Key:  Account Name
-        Value:  !Ref MyAccountName
-      - Key: Name
-        Value: !Sub 'public_${MyVPCName}_rt'
-      - Key:  Resource
-        Value:  Public Route Table 
-
-  PublicRoute:
-    Type: AWS::EC2::Route
-    Properties:
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId:
-        Ref: InternetGateway
-      RouteTableId:
-        Ref: PublicRouteTable
-
   MySubnet:
     Type: AWS::EC2::Subnet
     Properties:
@@ -146,8 +89,8 @@ Resources:
       CidrBlock: !Select 
       - 0
       -  Fn::Cidr: [ !Ref MyCidrBlock, 4, 8 ]
-      MapPublicIpOnLaunch: !Ref MapPublicIPOnLaunch
-      VpcId: !Ref MyVPC
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref MyPrivateVPC
       Tags: 
       - Key: "Region"
         Value: !Sub '${AWS::Region}'
@@ -158,13 +101,7 @@ Resources:
       - Key: Name
         Value: !Sub '${MyVPCName}_vpc'
       - Key:  Resource
-        Value: Public Subnet
-
-  MySubnetRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties: 
-     RouteTableId: !Ref PublicRouteTable 
-     SubnetId:  !Ref MySubnet
+        Value: Private Subnet
 
   MyAWSLinuxAmi2:
     Type:  AWS::EC2::Instance
@@ -186,8 +123,8 @@ Resources:
   MyEC2SecurityGroup:
       Type: AWS::EC2::SecurityGroup
       Properties:
-        GroupDescription:  public access to a test EC2 AWS-Linux AMI v2
-        VpcId: !Ref MyVPC
+        GroupDescription:  Private access to a test EC2 AWS-Linux AMI v2
+        VpcId: !Ref MyPrivateVPC
         GroupName: !Sub 'TestInstanceSecurityGroup-${MyVPCName}'
         SecurityGroupIngress:
         - CidrIp: 0.0.0.0/0
@@ -207,17 +144,48 @@ Resources:
         - Key: Name
           Value: !Sub 'TestInstanceSecurityGroup-${MyVPCName}_sg'
 
+  PrivateSSMEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+      SecurityGroupIds: 
+      - !Ref MyEC2SecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssm'
+      SubnetIds: 
+      - !Ref MySubnet
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      VpcId: !Ref MyPrivateVPC
+
+  PrivateSSMMessagesEndpoint:
+    Type:  AWS::EC2::VPCEndpoint
+    Properties: 
+      SecurityGroupIds: 
+      - !Ref MyEC2SecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssmmessages'
+      SubnetIds: 
+      - !Ref MySubnet
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      VpcId:  !Ref MyPrivateVPC
+
+  PrivateEC2MessagesEndpoint:
+    Type:  AWS::EC2::VPCEndpoint
+    Properties: 
+      SecurityGroupIds: 
+      - !Ref MyEC2SecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ec2messages'
+      SubnetIds: 
+      - !Ref MySubnet
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      VpcId: !Ref MyPrivateVPC
+
 Outputs:
   MyVpcId:
     Description: The ID of the VPC
-    Value: !Ref MyVPC
+    Value: !Ref MyPrivateVPC
     Export:
       Name: !Sub "${AWS::StackName}-vpcid"
-  MyPublicRouteTableId:
-   Description:  The ID of the Public Route Table
-   Value:  !Ref PublicRouteTable
-   Export:
-    Name: !Sub "${AWS::StackName}-rtid"
   MySubnetId:
     Description: The ID of the subnet
     Value: !Ref MySubnet

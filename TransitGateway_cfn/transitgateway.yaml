@@ -26,6 +26,9 @@ Parameters:
     AllowedValues: 
       - true
       - false
+  OrganizationAccountId:
+    Type:  String
+    Description:  Please enter the number of the AWS Account that is the admin for the Organization
 
 # For tagging all related resources
   ConnectToGlobalNetworkManager:
@@ -57,6 +60,7 @@ Metadata:
         Parameters:
           - ShareWithOrg
           - OrgId
+          - OrganizationAccountId
       - Label:
           default: (Optional) Enable registration with a Global Network Manager
         Parameters:
@@ -68,6 +72,8 @@ Metadata:
         default: Enable Sharing within an Organization
       OrgId:
         default: AWS Organization Id
+      OrganizationAccountId:
+        default: Provide the Organization associated AWS Account ID
 
 Conditions:
   EnableRAM: 
@@ -107,10 +113,10 @@ Resources:
     DependsOn: MyTransitGateway
     Condition: EnableRAM
     Properties:
-      AllowExternalPrincipals: true
+      AllowExternalPrincipals: false
       Name: TransitGatewayOrgShare
       Principals: 
-        - !Sub 'arn:aws:organizations::${AWS::AccountId}:organization/${OrgId}'
+        - !Sub 'arn:aws:organizations::${OrganizationAccountId}:organization/${OrgId}'
       ResourceArns: 
         - !Sub 'arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:transit-gateway/${MyTransitGateway}'
 
