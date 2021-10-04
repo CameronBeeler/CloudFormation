@@ -126,23 +126,36 @@ Resources:
         GroupDescription:  Private access to a test EC2 AWS-Linux AMI v2
         VpcId: !Ref MyPrivateVPC
         GroupName: !Sub 'TestInstanceSecurityGroup-${MyVPCName}'
-        SecurityGroupIngress:
-        - CidrIp: 0.0.0.0/0
-          IpProtocol: icmp
-          FromPort: -1
-          ToPort: -1
-        - CidrIp: 0.0.0.0/0
-          IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-        SecurityGroupEgress:
-        - CidrIp: 0.0.0.0/0
-          IpProtocol: '-1'
-          FromPort: 0
-          ToPort:   65535
         Tags:
         - Key: Name
           Value: !Sub 'TestInstanceSecurityGroup-${MyVPCName}_sg'
+
+  MyEC2SecurityGroupIngress1:
+    Type:  AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId:  !Ref MyEC2SecurityGroup
+      IpProtocol: all
+      FromPort: 0
+      ToPort: 65535
+      SourceSecurityGroupId:  !Ref MyEC2SecurityGroup
+
+  MyEC2SecurityGroupIngress2:
+    Type:  AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId:  !Ref MyEC2SecurityGroup
+      IpProtocol: all
+      FromPort: 0
+      ToPort: 65535
+      CidrIp: 0.0.0.0/0
+
+  MyEC2SecurityGroupEgress:
+    Type:  AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId:  !Ref MyEC2SecurityGroup
+      IpProtocol: '-1'
+      FromPort: 0
+      ToPort:   65535
+      CidrIp: 0.0.0.0/0
 
   PrivateSSMEndpoint:
     Type: AWS::EC2::VPCEndpoint
