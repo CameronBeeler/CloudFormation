@@ -37,7 +37,7 @@ Parameters:
     Type: String
     Default: MyCFNCreatedVPC
   MyCidrBlock:
-    Description: VPC CIDR Block - Each Octat must be 255 or less, and the end cidr range < 25 ie, 100.254.0.0/20
+    Description: VPC CIDR Block - Each Octet must be 255 or less, and the end cidr range < 25 ie, 100.254.0.0/20
     Type: String
     MinLength: 9
     MaxLength: 18
