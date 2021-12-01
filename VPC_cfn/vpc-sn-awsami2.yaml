@@ -145,7 +145,7 @@ Resources:
       - Fn::GetAZs: !Ref 'AWS::Region'
       CidrBlock: !Select 
       - 0
-      -  Fn::Cidr: [ !Ref MyCidrBlock, 4, 8 ]
+      -  Fn::Cidr: [ !Ref MyCidrBlock, 4, 6 ]
       MapPublicIpOnLaunch: !Ref MapPublicIPOnLaunch
       VpcId: !Ref MyVPC
       Tags: 
