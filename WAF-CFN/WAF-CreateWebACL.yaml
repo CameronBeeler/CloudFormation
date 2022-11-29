@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+  WebACLTestResource:
+   Type: 'AWS::WAFv2::WebACL'
+   Properties:
+    Name: WebAclLimit100
+    Scope: "REGIONAL"
+    DefaultAction:
+     Allow: 
+       Allow:
+         Type: BLOCK 
+    VisibilityConfig:
+     SampledRequestsEnabled: true
+     CloudWatchMetricsEnabled: true
+     MetricName: WebAclMetric

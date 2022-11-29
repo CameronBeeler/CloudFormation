@@ -1,0 +1,185 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "apigateway:GET",
+                "cloudformation:DescribeStackResource",
+                "cloudformation:CreateChangeSet",
+                "cloudformation:CreateStack",
+                "cloudformation:ContinueUpdateRollback",
+                "cloudfront:*",
+                "cloudwatch:GetMetricData",
+                "cloudwatch:GetMetricStatistics",
+                "cloudformation:DescribeChangeSet",
+                "cloudformation:ExecuteChangeSet",
+                "cloudformation:ListStackResources",
+                "cloudformation:DescribeStackEvents",
+                "cloudformation:UpdateStack",
+                "cloudformation:DescribeStackResources",
+                "cloudformation:DescribeStacks",
+                "cloudformation:GetStackPolicy",
+                "cloudformation:GetTemplate",
+                "cloudformation:ValidateTemplate",
+                "cloudformation:CreateUploadBucket",
+                "cloudformation:CancelUpdateStack",
+                "cloudformation:UpdateTerminationProtection",
+                "cloudformation:SetStackPolicy",
+                "cloudformation:ListStacks",
+                "cloudformation:GetTemplateSummary",
+                "cloudfront:*",
+                "cloudwatch:GetMetricData",
+                "cloudwatch:GetMetricStatistics",
+                "cognito-identity:CreateIdentityPool",
+                "cognito-identity:DeleteIdentityPool",
+                "cognito-identity:SetIdentityPoolRoles",
+                "cognito-identity:UpdateIdentityPool",
+                "cognito-idp:CreateGroup",
+                "cognito-idp:CreateIdentityProvider",
+                "cognito-idp:CreateUserPool",
+                "cognito-idp:CreateUserPoolClient",
+                "cognito-idp:CreateUserPoolDomain",
+                "cognito-idp:DeleteGroup",
+                "cognito-idp:DeleteIdentityProvider",
+                "cognito-idp:DeleteUserPool",
+                "cognito-idp:DeleteUserPoolClient",
+                "cognito-idp:DeleteUserPoolDomain",
+                "cognito-idp:Describe*",
+                "cognito-idp:Get*",
+                "cognito-idp:List*",
+                "cognito-idp:SetUICustomization",
+                "cognito-idp:SetUserPoolMfaConfig",
+                "cognito-idp:TagResource",
+                "cognito-idp:UpdateGroup",
+                "cognito-idp:UpdateIdentityProvider",
+                "cognito-idp:UpdateUserPool",
+                "cognito-idp:UpdateUserPoolClient",
+                "cognito-idp:UpdateUserPoolDomain",
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeVpcs",
+                "iam:ListRoles",
+                "iam:PassRole",
+                "kms:ListAliases",
+                "logs:*",
+                "route53:*",
+                "s3:*",
+                "s3:GetObject",
+                "s3:ListAllMyBuckets",
+                "s3:ListBucket",
+                "s3:Put*",
+                "sns:CreateTopic",
+                "sns:ListSubscriptionsByTopic",
+                "sns:ListTopics",
+                "sns:Subscribe",
+                "synthetics:*",
+                "synthetics:CreateCanary",
+                "synthetics:CreateGroup",
+                "synthetics:DescribeCanaries",
+                "synthetics:DescribeCanariesLastRun",
+                "synthetics:DescribeRuntimeVersions",
+                "synthetics:ListGroups",
+                "wafv2:*",
+                "xray:BatchGetTraces",
+                "xray:GetTraceSummaries"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:PassRole"
+            ],
+            "Resource": [
+                "arn:aws:iam::*:role/service-role/CloudWatchSyntheticsRole*"
+            ],
+            "Condition": {
+                "StringEquals": {
+                    "iam:PassedToService": [
+                        "lambda.amazonaws.com",
+                        "synthetics.amazonaws.com"
+                    ]
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:GetRole",
+                "iam:ListAttachedRolePolicies"
+            ],
+            "Resource": [
+                "arn:aws:iam::*:role/service-role/CloudWatchSyntheticsRole*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudwatch:PutMetricAlarm",
+                "cloudwatch:DeleteAlarms"
+            ],
+            "Resource": [
+                "arn:aws:cloudwatch:*:*:alarm:Synthetics-*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudwatch:DescribeAlarms"
+            ],
+            "Resource": [
+                "arn:aws:cloudwatch:*:*:alarm:*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "lambda:CreateFunction",
+                "lambda:AddPermission",
+                "lambda:PublishVersion",
+                "lambda:UpdateFunctionCode",
+                "lambda:UpdateFunctionConfiguration",
+                "lambda:GetFunctionConfiguration",
+                "lambda:DeleteFunction"
+            ],
+            "Resource": [
+                "arn:aws:lambda:*:*:function:cwsyn-*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "lambda:GetLayerVersion",
+                "lambda:PublishLayerVersion",
+                "lambda:DeleteLayerVersion"
+            ],
+            "Resource": [
+                "arn:aws:lambda:*:*:layer:cwsyn-*",
+                "arn:aws:lambda:*:*:layer:Synthetics:*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "kms:DescribeKey"
+            ],
+            "Resource": "arn:aws:kms:*:*:key/*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "kms:Decrypt"
+            ],
+            "Resource": "arn:aws:kms:*:*:key/*",
+            "Condition": {
+                "StringLike": {
+                    "kms:ViaService": [
+                        "s3.*.amazonaws.com"
+                    ]
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Exploring AWS RDS Aurora Serverless v2 CFN deployments
+
+Resources:
+  AuroraServerlessV2ClusterTest:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      DatabaseName: DBClusterName
+      DBClusterIdentifier: auroratest
+      MasterUsername: Cam
+      MasterUserPassword: notadmin
+      EnableIAMDatabaseAuthentication: true
+      DBSubnetGroupName: auroraserverlessv2-test
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: 0.5
+        MaxCapacity: 2
+      Engine: aurora-postgresql
+      EngineVersion: 13.7
+      StorageEncrypted: true
+
+  AuroraServerlessV2InstanceTest:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBClusterIdentifier: 
+        Ref: AuroraServerlessV2ClusterTest
+      DBInstanceIdentifier: DBInstanceName
+      DBInstanceClass: db.serverless
+      Engine:  aurora-postgresql

@@ -1,0 +1,193 @@
+Parameters:
+  paramEnvironment:
+    Type: String
+    Description: Which environment do you want to deploy to? (local, dev, qa, or prod)
+    AllowedValues:
+      - local
+      - dev
+      - qa
+      - prod
+    Default: dev
+  paramServiceName:
+    Type: String
+    Description: A short name for the service
+    Default: pspp-audit-log
+  paramReleaseVersion:
+    Type: String
+    Description: The Release Version number
+    Default: 0.2.0
+  paramBillingGuid:
+    Type: String
+    Description: SDGE billing-guid for PSPP application
+    AllowedValues: # Used this to ensure the value is not changed accidentally
+      - 334184B439E74C6484925740CE4E5DC1
+    Default: 334184B439E74C6484925740CE4E5DC1 # Ensure this value is the same in vars.sh
+
+Resources:
+  IAMPolicyID:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub 'pspp-audit-log-${paramEnvironment}-iam-policy'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - 'apigateway:*'
+          - 'apigateway:DELETE'
+          - 'cloudformation:DescribeStackResource'
+          - 'cloudformation:ContinueUpdateRollback'
+          - 'cloudformation:ExecuteChangeSet'
+          - 'cloudformation:DescribeStackResources'
+          - 'cloudformation:DescribeStacks'
+          - 'cloudformation:GetTemplate'
+          - 'cloudformation:DeleteChangeSet'
+          - 'cloudformation:ListStacks'
+          - 'cloudformation:GetTemplateSummary'
+          - 'cloudwatch:PutMetricAlarm'
+          - 'cloudformation:CreateStack'
+          - 'cloudformation:ListChangeSets'
+          - 'cloudformation:CancelUpdateStack'
+          - 'cloudformation:CreateChangeSet'
+          - 'cloudformation:CreateUploadBucket'
+          - 'cloudformation:DeleteStack'
+          - 'cloudformation:DescribeChangeSet'
+          - 'cloudformation:DescribeStackEvents'
+          - 'cloudformation:GetStackPolicy'
+          - 'cloudformation:ListStackResources'
+          - 'cloudformation:SetStackPolicy'
+          - 'cloudformation:UpdateStack'
+          - 'cloudformation:UpdateTerminationProtection'
+          - 'cloudformation:ValidateTemplate'
+          - 'cloudwatch:DeleteAlarms'
+          - 'cloudwatch:DescribeAlarms'
+          - 'codebuild:StopBuild'
+          - 'dynamodb:BatchWriteItem'
+          - 'dynamodb:CreateTable'
+          - 'dynamodb:DeleteTable'
+          - 'dynamodb:DescribeContinuousBackups'
+          - 'dynamodb:ListTables'
+          - 'dynamodb:ListTagsOfResource'
+          - 'dynamodb:UpdateTable'
+          - 'dynamodb:DescribeTable'
+          - 'dynamodb:UpdateContinuousBackups'
+          - 'dynamodb:TagResource'
+          - 'dynamodb:UntagResource'
+          - 'dynamodb:UpdateTimeToLive'
+          - 'dynamodb:DescribeTimeToLive'
+          - 'ec2:AuthorizeSecurityGroupEgress'
+          - 'ec2:AuthorizeSecurityGroupIngress'
+          - 'ec2:CreateSecurityGroup'
+          - 'ec2:createTags'
+          - 'ec2:CreateVpcEndpoint'
+          - 'ec2:DeleteVpcEndpoints'
+          - 'ec2:DescribeNetworkInterfaces'
+          - 'ec2:DescribeSecurityGroups'
+          - 'ec2:DescribeSubnets'
+          - 'ec2:DescribeVpcEndpoints'
+          - 'ec2:DescribeVpcs'
+          - 'ec2:ModifyVpcEndpoint'
+          - 'ec2:RevokeSecurityGroupEgress'
+          - 'iam:AttachRolePolicy'
+          - 'iam:CreatePolicy'
+          - 'iam:CreateRole'
+          - 'iam:CreateRolePolicy'
+          - 'iam:DeleteRole'
+          - 'iam:DeleteRolePolicy'
+          - 'iam:GetPolicy'
+          - 'iam:GetRole'
+          - 'iam:GetRolePolicy'
+          - 'iam:ListPolicies'
+          - 'iam:PassRole'
+          - 'iam:PutRolePolicy'
+          - 'iam:UpdateRolePolicy'
+          - 'iam:UpdateRole'
+          - 'iam:DetachRolePolicy'
+          - 'iam:DetachUserPolicy'
+          - 'iam:AttachUserPolicy'
+          - 'iam:DeletePolicy'
+          - 'iam:ListPolicyVersions'
+          - 'lambda:CreateFunction'
+          - 'lambda:DeleteAlias'
+          - 'lambda:DeleteEventSourceMapping'
+          - 'lambda:DeleteFunction'
+          - 'lambda:GetEventSourceMapping'
+          - 'lambda:GetFunctionConfiguration'
+          - 'lambda:ListTags'
+          - 'lambda:RemovePermission'
+          - 'lambda:TagResource'
+          - 'lambda:UntagResource'
+          - 'lambda:UpdateEventSourceMapping'
+          - 'lambda:UpdateFunctionCode'
+          - 'lambda:UpdateFunctionConfiguration'
+          - 'lambda:UpdatePermission'
+          - 'lambda:UpdateAlias'
+          - 'lambda:ListEventSourceMappings'
+          - 'lambda:CreateAlias'
+          - 'lambda:CreateEventSourceMapping'
+          - 'lambda:PutFunctionConcurrency'
+          - 'lambda:GetFunction'
+          - 'lambda:CreatePermission'
+          - 'lambda:AddPermission'
+          - 'lambda:UpdateFunction'
+          - 'lambda:DeleteFunctionConcurrency'
+          - 'logs:*'
+          - 'rds:AddTagsToResource'
+          - 'rds:CreateDBCluster'
+          - 'rds:CreateDBInstance'
+          - 'rds:CreateDBSecurityGroup'
+          - 'rds:CreateDBSubnetGroup'
+          - 'rds:Delete*'
+          - 'rds:Describe*'
+          - 'rds:ModifyDBCluster'
+          - 'resource-groups:*'
+          - 'route53:ChangeResourceRecordSets'
+          - 'route53:ChangeTagsForResource'
+          - 'route53:CreateHealthCheck'
+          - 'route53:DeleteHealthCheck'
+          - 'route53:GetChange'
+          - 'route53:ListHostedZones'
+          - 'route53:ListResourceRecordSets'
+          - 's3:Delete*'
+          - 's3:GetObject'
+          - 's3:ListAllMyBuckets'
+          - 's3:ListBucket'
+          - 's3:ListBuckets'
+          - 's3:ListObjects'
+          - 's3:Put*'
+          - 'secretsmanager:*'
+          - 'secretsmanager:CreateSecret'
+          - 'secretsmanager:DeleteSecret'
+          - 'secretsmanager:GetRandomPassword'
+          - 'secretsmanager:TagResource'
+          - 'sns:CreateTopic'
+          - 'sns:DeleteTopic'
+          - 'sns:GetTopicAttributes'
+          - 'sns:ListSubscriptionsByTopic'
+          - 'sns:ListTopics'
+          - 'sns:SetTopicAttributes'
+          - 'sns:Subscribe'
+          - 'sns:Unsubscribe'
+          - 'sqs:AddPermission'
+          - 'sqs:CreateQueue'
+          - 'sqs:DeleteQueue'
+          - 'sqs:GetQueueAttributes'
+          - 'sqs:ListQueueTags'
+          - 'sqs:ListQueues'
+          - 'sqs:RemovePermission'
+          - 'sqs:SetQueueAttributes'
+          - 'sqs:TagQueue'
+          - 'sqs:UntagQueue'
+          - 'ssm:GetParameter'
+          - 'ssm:AddTagsToResource'
+          - 'ssm:PutParameter'
+          Resource: "*"
+      Groups:
+      - sdge-dfibe-qa-iam-group-automation
+
+Outputs:
+  InstanceProfileName:
+    Description:   The name of the IAM policy
+    Value: !Ref IAMPolicyID
+    Export:
+      Name: ManagedPolicyarn
