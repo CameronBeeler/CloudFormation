@@ -213,4 +213,4 @@ Outputs:
     Description:   IPSet creation
     Value: !Ref WAFblockIPSet
     Export:
-      Name: PSPPSharedServicesWAFIPSet
+      Name: PSPPSharedServicesWAFBlockNonSempraIPSet
